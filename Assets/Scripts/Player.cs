@@ -5,8 +5,12 @@ using TMPro;
 
 public class Player : NetworkBehaviour
 {
-    public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>();
+    public NetworkVariable<bool> PlayerColor = new NetworkVariable<bool>();
     private GameObject playerObject;
+
+    Vector2 whitePosition = new Vector2(-2f, 1f);
+    Vector2 blackPosition = new Vector2(-2f, 5f);
 
     void Start() {
         playerObject = transform.gameObject;
@@ -14,44 +18,31 @@ public class Player : NetworkBehaviour
     }
 
     void Update() {
-        //Debug.Log(PlayerName.Value);
+        
+    }
 
-        transform.position = Position.Value;
-        Debug.Log("Alive with name: " + PlayerName.Value);
+    public override void OnNetworkSpawn() {
+        if (IsOwner) SetPlayerColorServerRPC();
+        base.OnNetworkSpawn();
+    }
+
+    [ServerRpc]
+    void SetPlayerColorServerRPC() {
+        PlayerColor.Value = IsHost;
+        if (PlayerColor.Value) {
+            transform.position = whitePosition;
+        } else {
+            transform.position = blackPosition;
+        }
     }
 
     public void SetLocalPlayerName(string name) {
         if (IsLocalPlayer) {
-            PlayerName.Value = name;
+            //PlayerName.Value = name;
             Debug.Log("I am");
-            Debug.Log(PlayerName.Value);
+            Debug.Log(name);
         }
     }
 
-    public NetworkVariable<Vector3> Position = new NetworkVariable<Vector3>();
-
-    public override void OnNetworkSpawn() {
-        if (IsOwner) {
-            Move();
-        }
-    }
-
-    public void Move() {
-        if (NetworkManager.Singleton.IsServer) {
-            var randomPos = GetRandomPosition();
-            transform.position = randomPos;
-            Position.Value = randomPos;
-        } else {
-            SubmitPositionRequestServerRPC();
-        }
-    }
-
-    [ServerRpc]
-    void SubmitPositionRequestServerRPC(ServerRpcParams rpcParams = default) {
-        Position.Value = GetRandomPosition();
-    }
-
-    static Vector3 GetRandomPosition() {
-        return new Vector3(Random.Range(-10f, 10f), 1f, Random.Range(-10f, 10f));
-    }
+   
 }
