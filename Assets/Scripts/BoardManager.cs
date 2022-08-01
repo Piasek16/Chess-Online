@@ -27,12 +27,15 @@ public class BoardManager : NetworkBehaviour {
     }
 
     string files = "abcdefgh";
-    Camera defaultCamera;
     Shader defaultShader;
-    Vector2 mousePos;
+
+    public static BoardManager Instance { get; private set; }
+
+    void Awake() {
+        if (Instance != null && Instance != this) Destroy(this); else Instance = this;
+    }
 
     void Start() {
-        defaultCamera = Camera.main;
         defaultShader = Shader.Find("Unlit/Color");
         pieces = new Dictionary<int, Piece>();
         foreach(Piece piece in piecesPrefabs) {
@@ -45,11 +48,6 @@ public class BoardManager : NetworkBehaviour {
     public void OnPlayerLogin() {
         GenerateBoard();
         DefaultSetup();
-    }
-
-    void Update() {
-        mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
-        //attach handle detach
     }
 
     void GenerateBoard() {
@@ -112,4 +110,13 @@ public class BoardManager : NetworkBehaviour {
         SetSpace('h', 8, PieceType.BRook);
     }
 
+    public Piece GetPieceFromSpace(int file, int rank) {
+        GameObject _space = board[file, rank];
+        if (_space.transform.childCount >= 1) return _space.transform.GetComponentInChildren<Piece>();
+        return null;
+    }
+
+    public Piece GetPieceFromSpace(char file, int rank) {
+        return GetPieceFromSpace(files.IndexOf(file), rank);
+    }
 }
