@@ -1,7 +1,6 @@
-using Unity.Netcode;
 using UnityEngine;
 
-public class Piece : NetworkBehaviour {
+public class Piece : MonoBehaviour {
 
     public int ID;
 }
