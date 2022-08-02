@@ -3,9 +3,9 @@ using Unity.Netcode;
 using System.Collections.Generic;
 
 public class BoardManager : NetworkBehaviour {
-    [SerializeField] Color whiteColor;
-    [SerializeField] Color blackColor;
-    [SerializeField] Color highlightColor;
+    [SerializeField] public Color whiteColor;
+    [SerializeField] public Color blackColor;
+    [SerializeField] public Color highlightColor;
     [SerializeField] Piece[] piecesPrefabs;
 
     Dictionary<int, Piece> pieces;
@@ -30,7 +30,6 @@ public class BoardManager : NetworkBehaviour {
     Shader defaultShader;
 
     public static BoardManager Instance { get; private set; }
-
     void Awake() {
         if (Instance != null && Instance != this) Destroy(this); else Instance = this;
     }
@@ -118,5 +117,9 @@ public class BoardManager : NetworkBehaviour {
 
     public Piece GetPieceFromSpace(char file, int rank) {
         return GetPieceFromSpace(files.IndexOf(file), rank);
+    }
+
+    public Piece GetPieceFromSpace(Vector2Int position) {
+        return GetPieceFromSpace(position.x, position.y);
     }
 }

@@ -51,6 +51,7 @@ public class Player : NetworkBehaviour {
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
         isAttached = true;
+        piece.GetValidMoves();
     }
 
     void DetachPiece(Vector2Int location) {

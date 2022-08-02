@@ -897,18 +897,6 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -946,10 +934,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2123819506533109093, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
-      propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2123819506533109094, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
@@ -1507,6 +1491,7 @@ GameObject:
   - component: {fileID: 2144791408}
   - component: {fileID: 2144791409}
   - component: {fileID: 2144791410}
+  - component: {fileID: 2144791411}
   m_Layer: 0
   m_Name: BoardManager
   m_TagString: Untagged
@@ -1543,7 +1528,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   whiteColor: {r: 1, g: 1, b: 1, a: 0}
   blackColor: {r: 0.037148237, g: 1, b: 0, a: 0}
-  highlightColor: {r: 1, g: 0.16531089, b: 0, a: 0}
+  highlightColor: {r: 1, g: 0, b: 0.79022217, a: 0.5686275}
   piecesPrefabs:
   - {fileID: -4968268513128904963, guid: 473400df95452d944af3cbdcb29be8c8, type: 3}
   - {fileID: -7677859193560087854, guid: 078a6b0c7f318e241b0c91d0e213f109, type: 3}
@@ -1573,3 +1558,15 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+--- !u!114 &2144791411
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2144791407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 085becadb64d4974196dceb52efed769, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
