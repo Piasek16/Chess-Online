@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class BoardManager : NetworkBehaviour {
     [SerializeField] public Color whiteColor;
     [SerializeField] public Color blackColor;
-    [SerializeField] public Color highlightColor;
+    [SerializeField] public Color highlightOffsetColor;
     [SerializeField] Piece[] piecesPrefabs;
 
     Dictionary<int, Piece> pieces;
@@ -37,12 +37,26 @@ public class BoardManager : NetworkBehaviour {
     void Start() {
         defaultShader = Shader.Find("Unlit/Color");
         pieces = new Dictionary<int, Piece>();
-        foreach(Piece piece in piecesPrefabs) {
+        foreach (Piece piece in piecesPrefabs) {
             pieces.Add(piece.ID, piece);
         }
 
         OnPlayerLogin();
     }
+
+    /*void Update() {
+        for (int i = 0; i < 8; i++) {
+            if (i % 2 == 0) {
+                for (int j = 0; j < 8; j++) {
+                    board[i, j].GetComponent<MeshRenderer>().material.color = j % 2 == 0 ? blackColor : whiteColor;
+                }
+            } else {
+                for (int j = 0; j < 8; j++) {
+                    board[i, j].GetComponent<MeshRenderer>().material.color = j % 2 == 0 ? whiteColor : blackColor;
+                }
+            }
+        }
+    }*/
 
     public void OnPlayerLogin() {
         GenerateBoard();

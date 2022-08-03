@@ -51,13 +51,14 @@ public class Player : NetworkBehaviour {
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
         isAttached = true;
-        piece.GetValidMoves();
+        piece.HighlightPossibleMoves();
     }
 
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
         attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
         attachedPiece.transform.localPosition = Vector3.zero;
+        attachedPiece.ResetPossibleMoves();
         attachedPiece = null;
         isAttached = false;
     }

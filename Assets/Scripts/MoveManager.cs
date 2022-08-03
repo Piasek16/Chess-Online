@@ -10,19 +10,19 @@ public class MoveManager : MonoBehaviour {
 
     public List<Vector2Int> GetDiagonalMoves(Vector2Int position) {
         List<Vector2Int> moves = new List<Vector2Int>();
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x + i < 8 && position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y + i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x + i < 8 && position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y - i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x - i >= 0 && position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y - i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x - i >= 0 && position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y + i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
@@ -31,19 +31,19 @@ public class MoveManager : MonoBehaviour {
 
     public List<Vector2Int> GetVerticalMoves(Vector2Int position) {
         List<Vector2Int> moves = new List<Vector2Int>();
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x, position.y + i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x, position.y - i);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; position.x - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y);
             if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
         }
@@ -102,7 +102,7 @@ public class MoveManager : MonoBehaviour {
 
     public List<Vector2Int> GetMovesForward(Vector2Int position, int ammount = 1) {
         List<Vector2Int> moves = new List<Vector2Int>();
-        for (int i = 1; i < 8 && i <= ammount; i++) {
+        for (int i = 1; position.y + i < 8 && i <= ammount; i++) {
             moves.Add(new Vector2Int(position.x, position.y + i));
         }
         return moves;
