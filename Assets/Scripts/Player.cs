@@ -59,6 +59,7 @@ public class Player : NetworkBehaviour {
         attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
         attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMoves();
+        attachedPiece.UpdatePosition();
         attachedPiece = null;
         isAttached = false;
     }

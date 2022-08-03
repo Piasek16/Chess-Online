@@ -112,10 +112,10 @@ public class MoveManager : MonoBehaviour {
         List<Vector2Int> moves = new List<Vector2Int>();
         if (position.x - 1 >= 0 && position.y + 1 < 8)
             if (BoardManager.Instance.GetPieceFromSpace(position.x - 1, position.y + 1) != null)
-                moves.Remove(new Vector2Int(position.x - 1, position.y + 1));
+                moves.Add(new Vector2Int(position.x - 1, position.y + 1));
         if (position.x + 1 < 8 && position.y + 1 < 8)
             if (BoardManager.Instance.GetPieceFromSpace(position.x + 1, position.y + 1) != null)
-                moves.Remove(new Vector2Int(position.x + 1, position.y + 1));
+                moves.Add(new Vector2Int(position.x + 1, position.y + 1));
         return moves;
     }
 }

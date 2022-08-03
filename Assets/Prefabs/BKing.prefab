@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7616403423528726544}
   - component: {fileID: 1564542022828299820}
-  - component: {fileID: -7677859193560087854}
+  - component: {fileID: -1417802348366178195}
   m_Layer: 0
   m_Name: BKing
   m_TagString: Untagged
@@ -85,7 +85,7 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &-7677859193560087854
+--- !u!114 &-1417802348366178195
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -94,7 +94,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2780484565708679991}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a97e50f598bee2b44a6579369df5b8c9, type: 3}
+  m_Script: {fileID: 11500000, guid: b8f6cf69762c6284d82f56ef57a11f4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: -1
