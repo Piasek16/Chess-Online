@@ -46,20 +46,26 @@ public class Player : NetworkBehaviour {
         if (isAttached) HoldPiece();
     }
 
+    private Vector2Int oldPiecePosition;
+
     void AttachPiece(Piece piece) {
         if (piece == null) return;
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
+        oldPiecePosition = piece.Position;
         isAttached = true;
         piece.HighlightPossibleMoves();
     }
 
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
-        attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
+        if(!attachedPiece.PossibleMoves.Contains(attachedPiece.Position)) {
+            attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
+        } else {
+            attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
+        }
         attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMoves();
-        attachedPiece.UpdatePosition();
         attachedPiece = null;
         isAttached = false;
     }

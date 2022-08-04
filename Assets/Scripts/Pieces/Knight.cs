@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Knight : Piece {
     public override void HighlightPossibleMoves() {
-        possibleMoves.AddRange(MoveManager.Instance.GetKnightMoves(position));
+        possibleMoves.AddRange(MoveManager.Instance.GetKnightMoves(Position));
         base.HighlightPossibleMoves();
     }
 }

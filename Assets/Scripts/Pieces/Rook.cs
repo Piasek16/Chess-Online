@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Rook : Piece {
     public override void HighlightPossibleMoves() {
-        possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(position));
+        possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(Position));
         base.HighlightPossibleMoves();
     }
 }
