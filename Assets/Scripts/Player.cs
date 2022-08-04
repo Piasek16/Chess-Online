@@ -73,6 +73,9 @@ public class Player : NetworkBehaviour {
         if(!attachedPiece.PossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
             attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
         } else {
+            (attachedPiece as Pawn)?.FirstMoveMade();
+            var _oldPiece = BoardManager.Instance.GetPieceFromSpace(location);
+            if (_oldPiece != null) Destroy(_oldPiece.gameObject);
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
             if (IsServer) { GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); GameSessionManager.Instance.WhitesTurn.Value = !GameSessionManager.Instance.WhitesTurn.Value; }
             else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);

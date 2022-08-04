@@ -42,6 +42,8 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ServerRpc(RequireOwnership = false)]
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
+        var _oldPiece = BoardManager.Instance.GetPieceFromSpace(newPiecePosition);
+        if (_oldPiece != null) Destroy(_oldPiece.gameObject);
         WhitesTurn.Value = !WhitesTurn.Value;
         var movedPiece = BoardManager.Instance.GetPieceFromSpace(oldPiecePosition);
         movedPiece.transform.parent = BoardManager.Instance.board[newPiecePosition.x, newPiecePosition.y].transform;
@@ -52,6 +54,8 @@ public class GameSessionManager : NetworkBehaviour {
     [ClientRpc]
     public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         if (IsServer) return;
+        var _oldPiece = BoardManager.Instance.GetPieceFromSpace(newPiecePosition);
+        if (_oldPiece != null) Destroy(_oldPiece.gameObject);
         var movedPiece = BoardManager.Instance.GetPieceFromSpace(oldPiecePosition);
         movedPiece.transform.parent = BoardManager.Instance.board[newPiecePosition.x, newPiecePosition.y].transform;
         movedPiece.transform.localPosition = Vector3.zero;
