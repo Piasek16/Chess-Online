@@ -30,6 +30,8 @@ public class Player : NetworkBehaviour {
         }
 
         if (IsOwner) BoardManager.Instance.OnPlayerLogin();
+
+        if (IsLocalPlayer && !IsOwnedByServer) GameSessionManager.Instance.StartGameServerRPC();
     }
 
     void UpdatePlayerObjectName(FixedString128Bytes previous, FixedString128Bytes newValue) {
@@ -46,6 +48,7 @@ public class Player : NetworkBehaviour {
     }
 
     void Update() {
+        if (!IsOwner) return;
         mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
         var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
         if (Input.GetMouseButtonDown(0)) AttachPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos.x, roundedMousePos.y));
@@ -57,6 +60,7 @@ public class Player : NetworkBehaviour {
 
     void AttachPiece(Piece piece) {
         if (piece == null) return;
+        if (piece.ID > 0 && !playerColor || piece.ID < 0 && playerColor) return;
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
         oldPiecePosition = piece.Position;
@@ -66,10 +70,12 @@ public class Player : NetworkBehaviour {
 
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
-        if(!attachedPiece.PossibleMoves.Contains(attachedPiece.Position)) {
+        if(!attachedPiece.PossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
             attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
         } else {
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
+            if (IsServer) { GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); GameSessionManager.Instance.WhitesTurn.Value = !GameSessionManager.Instance.WhitesTurn.Value; }
+            else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
         }
         attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMoves();
