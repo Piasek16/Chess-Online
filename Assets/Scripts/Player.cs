@@ -5,7 +5,8 @@ using Unity.Collections;
 public class Player : NetworkBehaviour {
     public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-    bool playerColor = false;
+    public bool playerColor = false;
+
     Vector2 whitePosition = new Vector2(-2f, 1f);
     Vector2 blackPosition = new Vector2(-2f, 6f);
 
@@ -23,6 +24,12 @@ public class Player : NetworkBehaviour {
         } else {
             transform.position = blackPosition;
         }
+
+        if (IsOwner) {
+            if (!playerColor) Camera.main.transform.rotation = Quaternion.Euler(0, 0, 180);
+        }
+
+        if (IsOwner) BoardManager.Instance.OnPlayerLogin();
     }
 
     void UpdatePlayerObjectName(FixedString128Bytes previous, FixedString128Bytes newValue) {

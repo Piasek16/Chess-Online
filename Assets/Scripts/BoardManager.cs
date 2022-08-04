@@ -40,8 +40,6 @@ public class BoardManager : NetworkBehaviour {
         foreach (Piece piece in piecesPrefabs) {
             pieces.Add(piece.ID, piece);
         }
-
-        OnPlayerLogin();
     }
 
     /*void Update() {
@@ -96,7 +94,8 @@ public class BoardManager : NetworkBehaviour {
         SetSpace(files.IndexOf(file), rank - 1, p);
     }
     void SetSpace(int file, int rank, PieceType p) {
-        Instantiate(pieces[(int)p], board[file, rank].transform, false);
+        var _ = Instantiate(pieces[(int)p], Vector3.zero, NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[file, rank].transform);
+        _.transform.localPosition = Vector3.zero;
     }
 
     void DefaultSetup() {
