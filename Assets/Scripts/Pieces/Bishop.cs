@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Bishop : Piece {
-    public override void HighlightPossibleMoves() {
-        possibleMoves.AddRange(MoveManager.Instance.GetDiagonalMoves(Position));
-        base.HighlightPossibleMoves();
+    public override List<Vector2Int> PossibleMoves {
+        get {
+            possibleMoves.Clear();
+            possibleMoves.AddRange(MoveManager.Instance.GetDiagonalMoves(Position));
+            RemoveFriendlyPiecesFromMoves();
+            return possibleMoves;
+        }
     }
 }

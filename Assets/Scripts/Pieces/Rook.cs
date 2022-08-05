@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Rook : Piece {
-    public override void HighlightPossibleMoves() {
-        possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(Position));
-        base.HighlightPossibleMoves();
+    public override List<Vector2Int> PossibleMoves { 
+        get {
+            possibleMoves.Clear();
+            possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(Position));
+            RemoveFriendlyPiecesFromMoves();
+            return possibleMoves;
+        } 
     }
 }

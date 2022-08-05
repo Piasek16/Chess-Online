@@ -86,14 +86,17 @@ public class BoardManager : NetworkBehaviour {
         return _newSpace;
     }
 
-    void SetSpace(string location, PieceType p) {
+    public void SetSpace(string location, PieceType p) {
         if (location.Length > 2) { Debug.LogError("Wrong Piece Format"); return; }
         SetSpace(files.IndexOf(location[0]), location[1] - 1, p);
     }
-    void SetSpace(char file, int rank, PieceType p) {
+    public void SetSpace(char file, int rank, PieceType p) {
         SetSpace(files.IndexOf(file), rank - 1, p);
     }
-    void SetSpace(int file, int rank, PieceType p) {
+    public void SetSpace(Vector2Int location, PieceType p) {
+        SetSpace(location.x, location.y, p);
+    }
+    public void SetSpace(int file, int rank, PieceType p) {
         var _ = Instantiate(pieces[(int)p], Vector3.zero, NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[file, rank].transform);
         _.transform.localPosition = Vector3.zero;
     }

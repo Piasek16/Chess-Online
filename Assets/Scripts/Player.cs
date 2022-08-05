@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
+using System.Collections.Generic;
 
 public class Player : NetworkBehaviour {
     public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
@@ -57,6 +58,7 @@ public class Player : NetworkBehaviour {
     }
 
     private Vector2Int oldPiecePosition;
+    private List<Vector2Int> oldPossibleMoves;
 
     void AttachPiece(Piece piece) {
         if (piece == null) return;
@@ -65,28 +67,29 @@ public class Player : NetworkBehaviour {
         attachedPiece.transform.parent = null;
         oldPiecePosition = piece.Position;
         isAttached = true;
-        piece.HighlightPossibleMoves();
+        piece.HighlightPossibleMoves(out oldPossibleMoves);
     }
 
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
-        if(!attachedPiece.PossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
+        if(!oldPossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
             attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
         } else {
-            (attachedPiece as Pawn)?.FirstMoveMade();
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(location);
             if (_oldPiece != null) Destroy(_oldPiece.gameObject);
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
+            Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
             if (IsServer) { GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); GameSessionManager.Instance.WhitesTurn.Value = !GameSessionManager.Instance.WhitesTurn.Value; }
             else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
+            (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
         }
         attachedPiece.transform.localPosition = Vector3.zero;
-        attachedPiece.ResetPossibleMoves();
+        attachedPiece.ResetPossibleMovesHighlight();
         attachedPiece = null;
         isAttached = false;
     }
 
     void HoldPiece() {
-        attachedPiece.transform.position = mousePos;
+        attachedPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -0.1f);
     }
 }

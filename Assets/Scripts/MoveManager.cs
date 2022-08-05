@@ -133,7 +133,7 @@ public class MoveManager : MonoBehaviour {
         return moves;
     }
 
-    private bool isPositionValid(Vector2Int position) {
+    public bool isPositionValid(Vector2Int position) {
         return (position.x >= 0 && position.x < 8 && position.y >= 0 && position.y < 8);
     }
 }
