@@ -38,12 +38,14 @@ public class Pawn : Piece {
         }
     }
 
+    Vector2Int behind;
     private void SummonGhostPawnBehind() {
-        var behind = new Vector2Int(Position.x, Position.y + (ID > 0 ? - 1 : 1));
+        behind = new Vector2Int(Position.x, Position.y + (ID > 0 ? - 1 : 1));
         if (MoveManager.Instance.isPositionValid(behind)) {
             Debug.Log("Summoning a ghost on " + behind);
             BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
             var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
+            GameSessionManager.Instance.WhitesTurn.OnValueChanged += ParentDisposeOfGhost; //Only ghost creator can destroy it
             ghost.GetComponent<Pawn>().InitGhost(Position);
             if (NetworkManager.Singleton.IsServer) {
                 Debug.Log("Sending a client summon ghost rpc");
@@ -58,7 +60,7 @@ public class Pawn : Piece {
     public void InitGhost(Vector2Int pawnParentLocation) {
         isGhost = true;
         ghostParent = BoardManager.Instance.GetPieceFromSpace(pawnParentLocation).GetComponent<Pawn>();
-        ID = 0;
+        ID = ghostParent.ID;
         Destroy(GetComponent<SpriteRenderer>());
     }
 
@@ -68,7 +70,20 @@ public class Pawn : Piece {
         }
     }
 
+    public void ParentDisposeOfGhost(bool old, bool ne) {
+        if (!GameSessionManager.Instance.MyTurn) return;
+        GameSessionManager.Instance.WhitesTurn.OnValueChanged -= ParentDisposeOfGhost;
+        (BoardManager.Instance.GetPieceFromSpace(behind) as Pawn)?.DisposeOfGhost();
+        if (NetworkManager.Singleton.IsServer) GameSessionManager.Instance.DisposeOfGhostClientRPC(behind); else GameSessionManager.Instance.DisposeOfGhostServerRPC(behind);
+    }
+
     public void DisposeOfGhost() {
-        if (isGhost) Destroy(gameObject);
+        if (transform.parent.childCount > 1) return; //Scheduled for destruction
+        Debug.Log("Disposed of ghost on " + Position); //For some reason this triggers additionally on enemy side without any errors
+        if (isGhost) {
+            Debug.Log("is ghost trigger");
+            ghostParent = null;
+            Destroy(gameObject);
+        }
     }
 }

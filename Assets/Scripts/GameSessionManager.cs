@@ -41,6 +41,10 @@ public class GameSessionManager : NetworkBehaviour {
         if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
     }
 
+    public void AdvanceTurn() {
+        WhitesTurn.Value = !WhitesTurn.Value;
+    }
+
     [ServerRpc(RequireOwnership = false)]
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         var _oldPiece = BoardManager.Instance.GetPieceFromSpace(newPiecePosition);
@@ -49,7 +53,7 @@ public class GameSessionManager : NetworkBehaviour {
         movedPiece.transform.parent = BoardManager.Instance.board[newPiecePosition.x, newPiecePosition.y].transform;
         movedPiece.transform.localPosition = Vector3.zero;
         Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
-        WhitesTurn.Value = !WhitesTurn.Value;
+        AdvanceTurn();
     }
 
     [ClientRpc]
@@ -73,10 +77,21 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ClientRpc]
     public void SummonGhostPawnBehindClientRPC(Vector2Int behind, Vector2Int parentPawnLocation) {
-        if (NetworkManager.Singleton.IsServer) return;
+        if (IsServer) return;
         Debug.Log("Client summoning a ghost on " + behind);
         BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
         var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
         ghost.GetComponent<Pawn>().InitGhost(parentPawnLocation);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void DisposeOfGhostServerRPC(Vector2Int location) {
+        (BoardManager.Instance.GetPieceFromSpace(location) as Pawn)?.DisposeOfGhost();
+    }
+
+    [ClientRpc]
+    public void DisposeOfGhostClientRPC(Vector2Int location) {
+        if (IsServer) return;
+        (BoardManager.Instance.GetPieceFromSpace(location) as Pawn)?.DisposeOfGhost();
     }
 }
