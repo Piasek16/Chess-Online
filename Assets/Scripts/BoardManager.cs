@@ -138,4 +138,22 @@ public class BoardManager : NetworkBehaviour {
     public Piece GetPieceFromSpace(Vector2Int position) {
         return GetPieceFromSpace(position.x, position.y);
     }
+
+    public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
+        var _oldPiece = GetPieceFromSpace(newPiecePosition);
+        if (_oldPiece != null) {
+            (_oldPiece as Pawn)?.ExecuteGhost();
+            Destroy(_oldPiece.gameObject);
+        }
+        var movedPiece = GetPieceFromSpace(oldPiecePosition);
+        movedPiece.transform.parent = board[newPiecePosition.x, newPiecePosition.y].transform;
+        movedPiece.transform.localPosition = Vector3.zero;
+        Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
+    }
+
+    public void SummonGhostPawn(Vector2Int behind, Vector2Int parentPawnPosition) {
+        SetSpace(behind, PieceType.WPawn);
+        var ghost = GetPieceFromSpace(behind);
+        ghost.GetComponent<Pawn>().InitGhost(parentPawnPosition);
+    }
 }

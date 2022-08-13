@@ -47,41 +47,27 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ServerRpc(RequireOwnership = false)]
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
-        var _oldPiece = BoardManager.Instance.GetPieceFromSpace(newPiecePosition);
-        if (_oldPiece != null) Destroy(_oldPiece.gameObject);
-        var movedPiece = BoardManager.Instance.GetPieceFromSpace(oldPiecePosition);
-        movedPiece.transform.parent = BoardManager.Instance.board[newPiecePosition.x, newPiecePosition.y].transform;
-        movedPiece.transform.localPosition = Vector3.zero;
-        Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
+        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
         AdvanceTurn();
     }
 
     [ClientRpc]
     public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         if (IsServer) return;
-        var _oldPiece = BoardManager.Instance.GetPieceFromSpace(newPiecePosition);
-        if (_oldPiece != null) Destroy(_oldPiece.gameObject);
-        var movedPiece = BoardManager.Instance.GetPieceFromSpace(oldPiecePosition);
-        movedPiece.transform.parent = BoardManager.Instance.board[newPiecePosition.x, newPiecePosition.y].transform;
-        movedPiece.transform.localPosition = Vector3.zero;
-        Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
+        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SummonGhostPawnBehindServerRPC(Vector2Int behind, Vector2Int parentPawnLocation) {
+    public void SummonGhostPawnBehindServerRPC(Vector2Int behind, Vector2Int parentPawnPosition) {
         Debug.Log("Server summoning a ghost on " + behind);
-        BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
-        var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
-        ghost.GetComponent<Pawn>().InitGhost(parentPawnLocation);
+        BoardManager.Instance.SummonGhostPawn(behind, parentPawnPosition);
     }
 
     [ClientRpc]
-    public void SummonGhostPawnBehindClientRPC(Vector2Int behind, Vector2Int parentPawnLocation) {
+    public void SummonGhostPawnBehindClientRPC(Vector2Int behind, Vector2Int parentPawnPosition) {
         if (IsServer) return;
         Debug.Log("Client summoning a ghost on " + behind);
-        BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
-        var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
-        ghost.GetComponent<Pawn>().InitGhost(parentPawnLocation);
+        BoardManager.Instance.SummonGhostPawn(behind, parentPawnPosition);
     }
 
     [ServerRpc(RequireOwnership = false)]

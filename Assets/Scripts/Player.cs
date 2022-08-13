@@ -75,8 +75,12 @@ public class Player : NetworkBehaviour {
         if(!oldPossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
             attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
         } else {
+            //Possibly rewrite as MovePieceLocally
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(location);
-            if (_oldPiece != null) Destroy(_oldPiece.gameObject);
+            if (_oldPiece != null) {
+                (_oldPiece as Pawn)?.ExecuteGhost();
+                Destroy(_oldPiece.gameObject);
+            }
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
             Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
             if (IsServer) { GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); GameSessionManager.Instance.AdvanceTurn(); }

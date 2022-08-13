@@ -5,8 +5,7 @@ using Unity.Netcode;
 public class Pawn : Piece {
 
     private bool firstMove = true;
-    private bool isGhost = false;
-    private Pawn ghostParent;
+    private Pawn ghostParent = null;
 
     public override List<Vector2Int> PossibleMoves {
         get {
@@ -38,7 +37,7 @@ public class Pawn : Piece {
         }
     }
 
-    Vector2Int behind;
+    private Vector2Int behind;
     private void SummonGhostPawnBehind() {
         behind = new Vector2Int(Position.x, Position.y + (ID > 0 ? - 1 : 1));
         if (MoveManager.Instance.isPositionValid(behind)) {
@@ -58,16 +57,18 @@ public class Pawn : Piece {
     }
 
     public void InitGhost(Vector2Int pawnParentLocation) {
-        isGhost = true;
         ghostParent = BoardManager.Instance.GetPieceFromSpace(pawnParentLocation).GetComponent<Pawn>();
         ID = ghostParent.ID;
         Destroy(GetComponent<SpriteRenderer>());
     }
 
-    void OnDestroy() {
-        if (isGhost && ghostParent != null) {
-            Destroy(ghostParent.gameObject);
-        }
+    private bool scheduledExecution = false;
+
+    public void ExecuteGhost() {
+        if (ghostParent == null) return;
+        Debug.Log("Executing ghost function in " + gameObject.name + " on " + Position);
+        Destroy(ghostParent.gameObject);
+        scheduledExecution = true;
     }
 
     public void ParentDisposeOfGhost(bool old, bool ne) {
@@ -78,12 +79,10 @@ public class Pawn : Piece {
     }
 
     public void DisposeOfGhost() {
-        if (transform.parent.childCount > 1) return; //Scheduled for destruction
-        Debug.Log("Disposed of ghost on " + Position); //For some reason this triggers additionally on enemy side without any errors
-        if (isGhost) {
-            Debug.Log("is ghost trigger");
-            ghostParent = null;
-            Destroy(gameObject);
-        }
+        if (ghostParent == null) { Debug.Log("Ghost Dispose Cancelled - piece is not a ghost"); return; }
+        if (scheduledExecution) { Debug.Log("Ghost Dispose Cancelled - execution scheduled on frame end"); return; }
+        Debug.Log("Disposed of ghost " + name + " on " + Position);
+        ghostParent = null;
+        Destroy(gameObject);
     }
 }
