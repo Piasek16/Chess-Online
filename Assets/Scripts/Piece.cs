@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class Piece : MonoBehaviour {
@@ -32,5 +33,13 @@ public class Piece : MonoBehaviour {
 
     protected void RemoveFriendlyPiecesFromMoves() {
         possibleMoves.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount > 0 && BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * ID > 0);
+    }
+
+    protected void RemoveIllegalMoves() {
+        possibleMoves.RemoveAll(move => {
+            if ((NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? 1 : -1) * ID > 0)
+                return !MoveManager.Instance.IsMoveLegal(Position, move);
+            return false;
+        });
     }
 }

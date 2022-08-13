@@ -9,6 +9,7 @@ public class Knight : Piece {
             possibleMoves.Clear();
             possibleMoves.AddRange(MoveManager.Instance.GetKnightMoves(Position));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         }
     }

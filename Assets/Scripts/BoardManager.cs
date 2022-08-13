@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
+using System;
 
 public class BoardManager : NetworkBehaviour {
     [SerializeField] public Color whiteColor;
@@ -9,7 +10,9 @@ public class BoardManager : NetworkBehaviour {
     [SerializeField] Piece[] piecesPrefabs;
 
     Dictionary<int, Piece> pieces;
+    private bool localPlayerColor;
 
+    public King localPlayerKing;
     public GameObject[,] board = new GameObject[8, 8];
     public enum PieceType : int {
         WKing = 1,
@@ -57,8 +60,10 @@ public class BoardManager : NetworkBehaviour {
     }*/
 
     public void OnPlayerLogin() {
+        localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor;
         GenerateBoard();
         DefaultSetup();
+        localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
     }
 
     void GenerateBoard() {
@@ -88,7 +93,7 @@ public class BoardManager : NetworkBehaviour {
 
     public void SetSpace(string location, PieceType p) {
         if (location.Length > 2) { Debug.LogError("Wrong Piece Format"); return; }
-        SetSpace(files.IndexOf(location[0]), location[1] - 1, p);
+        SetSpace(files.IndexOf(location[0]), location[1] - '0' - 1, p);
     }
     public void SetSpace(char file, int rank, PieceType p) {
         SetSpace(files.IndexOf(file), rank - 1, p);
@@ -96,8 +101,8 @@ public class BoardManager : NetworkBehaviour {
     public void SetSpace(Vector2Int location, PieceType p) {
         SetSpace(location.x, location.y, p);
     }
-    public void SetSpace(int file, int rank, PieceType p) {
-        var _ = Instantiate(pieces[(int)p], Vector3.zero, NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[file, rank].transform);
+    public void SetSpace(int positionX, int positionY, PieceType p) {
+        var _ = Instantiate(pieces[(int)p], Vector3.zero, localPlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
         _.transform.localPosition = Vector3.zero;
     }
 
@@ -125,18 +130,23 @@ public class BoardManager : NetworkBehaviour {
         SetSpace('h', 8, PieceType.BRook);
     }
 
-    public Piece GetPieceFromSpace(int file, int rank) {
-        GameObject _space = board[file, rank];
+    public Piece GetPieceFromSpace(int positionX, int positionY) {
+        GameObject _space = board[positionX, positionY];
         if (_space.transform.childCount >= 1) return _space.transform.GetComponentInChildren<Piece>();
         return null;
     }
 
     public Piece GetPieceFromSpace(char file, int rank) {
-        return GetPieceFromSpace(files.IndexOf(file), rank);
+        return GetPieceFromSpace(files.IndexOf(file), rank - 1);
     }
 
     public Piece GetPieceFromSpace(Vector2Int position) {
         return GetPieceFromSpace(position.x, position.y);
+    }
+
+    public Piece GetPieceFromSpace(string position) {
+        if (position.Length > 2) { Debug.LogError("Wrong Piece Format"); return null; }
+        return GetPieceFromSpace(files.IndexOf(position[0]), position[1] - '0' - 1);
     }
 
     public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
@@ -148,7 +158,7 @@ public class BoardManager : NetworkBehaviour {
         var movedPiece = GetPieceFromSpace(oldPiecePosition);
         movedPiece.transform.parent = board[newPiecePosition.x, newPiecePosition.y].transform;
         movedPiece.transform.localPosition = Vector3.zero;
-        Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
+        //Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
     }
 
     public void SummonGhostPawn(Vector2Int behind, Vector2Int parentPawnPosition) {

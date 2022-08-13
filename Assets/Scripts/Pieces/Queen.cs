@@ -10,6 +10,7 @@ public class Queen : Piece {
             possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(Position));
             possibleMoves.AddRange(MoveManager.Instance.GetDiagonalMoves(Position));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         }
     }

@@ -63,11 +63,11 @@ public class Player : NetworkBehaviour {
     void AttachPiece(Piece piece) {
         if (piece == null) return;
         if (piece.ID > 0 && !playerColor || piece.ID < 0 && playerColor) return;
+        piece.HighlightPossibleMoves(out oldPossibleMoves);
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
         oldPiecePosition = piece.Position;
         isAttached = true;
-        piece.HighlightPossibleMoves(out oldPossibleMoves);
     }
 
     void DetachPiece(Vector2Int location) {

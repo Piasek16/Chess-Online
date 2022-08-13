@@ -13,6 +13,7 @@ public class Pawn : Piece {
             possibleMoves.AddRange(MoveManager.Instance.GetPawnMovesForward(Position, ID > 0, firstMove));
             possibleMoves.AddRange(MoveManager.Instance.GetPawnDiagonalMoves(Position, ID > 0));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         }
     }
@@ -23,12 +24,12 @@ public class Pawn : Piece {
             var left = new Vector2Int(Position.x - 1, Position.y);
             var right = new Vector2Int(Position.x + 1, Position.y);
             bool doSummon = false;
-            if (MoveManager.Instance.isPositionValid(left)) {
+            if (MoveManager.Instance.IsPositionValid(left)) {
                 if (BoardManager.Instance.GetPieceFromSpace(left)?.GetType() == typeof(Pawn)) {
                     doSummon = true;
                 }
             }
-            if (MoveManager.Instance.isPositionValid(right)) {
+            if (MoveManager.Instance.IsPositionValid(right)) {
                 if (BoardManager.Instance.GetPieceFromSpace(right)?.GetType() == typeof(Pawn)) {
                     doSummon = true;
                 }
@@ -40,7 +41,7 @@ public class Pawn : Piece {
     private Vector2Int behind;
     private void SummonGhostPawnBehind() {
         behind = new Vector2Int(Position.x, Position.y + (ID > 0 ? - 1 : 1));
-        if (MoveManager.Instance.isPositionValid(behind)) {
+        if (MoveManager.Instance.IsPositionValid(behind)) {
             Debug.Log("Summoning a ghost on " + behind);
             BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
             var ghost = BoardManager.Instance.GetPieceFromSpace(behind);

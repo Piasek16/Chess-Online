@@ -8,6 +8,7 @@ public class King : Piece {
             possibleMoves.Clear();
             possibleMoves.AddRange(MoveManager.Instance.GetKingMoves(Position));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         }
     }

@@ -8,6 +8,7 @@ public class Bishop : Piece {
             possibleMoves.Clear();
             possibleMoves.AddRange(MoveManager.Instance.GetDiagonalMoves(Position));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         }
     }

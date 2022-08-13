@@ -28,6 +28,7 @@ public class GameSessionManager : NetworkBehaviour {
         Player1.OnValueChanged += PrintValues;
         Player2.OnValueChanged += PrintValues;
         WhitesTurn.OnValueChanged += SetMyTurn;
+        WhitesTurn.OnValueChanged += CheckForChecks;
     }
 
     public void PrintValues(ulong old, ulong ne) {
@@ -43,6 +44,10 @@ public class GameSessionManager : NetworkBehaviour {
 
     public void AdvanceTurn() {
         WhitesTurn.Value = !WhitesTurn.Value;
+    }
+
+    public void CheckForChecks(bool old, bool ne) {
+        if (MoveManager.Instance.IsKingInCheck()) Debug.Log("My king is in check!");
     }
 
     [ServerRpc(RequireOwnership = false)]

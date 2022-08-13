@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class MoveManager : MonoBehaviour {
@@ -124,16 +125,47 @@ public class MoveManager : MonoBehaviour {
         List<Vector2Int> moves = new List<Vector2Int>();
         var left = new Vector2Int(position.x - 1, position.y + (isWhite ? 1 : -1));
         var right = new Vector2Int(position.x + 1, position.y + (isWhite ? 1 : -1));
-        if (isPositionValid(left))
+        if (IsPositionValid(left))
             if (BoardManager.Instance.GetPieceFromSpace(left) != null)
                 moves.Add(left);
-        if (isPositionValid(right))
+        if (IsPositionValid(right))
             if (BoardManager.Instance.GetPieceFromSpace(right) != null)
                 moves.Add(right);
         return moves;
     }
 
-    public bool isPositionValid(Vector2Int position) {
+    public bool IsPositionValid(Vector2Int position) {
         return (position.x >= 0 && position.x < 8 && position.y >= 0 && position.y < 8);
+    }
+
+    public bool IsKingInCheck() {
+        var king = BoardManager.Instance.localPlayerKing;
+        var positionsToCheck = new List<Vector2Int>();
+        positionsToCheck.AddRange(GetDiagonalMoves(king.Position));
+        positionsToCheck.AddRange(GetVerticalMoves(king.Position));
+        positionsToCheck.AddRange(GetKnightMoves(king.Position));
+        positionsToCheck.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount <= 0
+            || BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * king.ID > 0);
+        if (positionsToCheck.Count == 0) return false;
+        foreach (Vector2Int position in positionsToCheck) {
+            var possiblyThreateningPiece = BoardManager.Instance.GetPieceFromSpace(position);
+            var possiblePieceMoves = possiblyThreateningPiece.PossibleMoves;
+            foreach (var move in possiblePieceMoves) {
+                var piece = BoardManager.Instance.GetPieceFromSpace(move);
+                if (piece != null)
+                    if (piece.GetType() == typeof(King)) return true;
+            }
+        }
+        return false;
+    }
+
+    public bool IsMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
+        var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
+        if (oldPiece != null) oldPiece.transform.parent = null;
+        BoardManager.Instance.MovePiece(oldPosition, newPosition);
+        var check = IsKingInCheck();
+        BoardManager.Instance.MovePiece(newPosition, oldPosition);
+        if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
+        return !check;
     }
 }

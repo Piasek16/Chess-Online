@@ -8,6 +8,7 @@ public class Rook : Piece {
             possibleMoves.Clear();
             possibleMoves.AddRange(MoveManager.Instance.GetVerticalMoves(Position));
             RemoveFriendlyPiecesFromMoves();
+            RemoveIllegalMoves();
             return possibleMoves;
         } 
     }
