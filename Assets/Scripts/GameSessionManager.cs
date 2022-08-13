@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class GameSessionManager : NetworkBehaviour {
     public static GameSessionManager Instance { get; private set; }
@@ -40,6 +41,7 @@ public class GameSessionManager : NetworkBehaviour {
     private void SetMyTurn(bool old, bool nef) {
         if (IsServer) MyTurn = WhitesTurn.Value; else MyTurn = !WhitesTurn.Value;
         if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
+        if (MyTurn) OnMyTurn();
     }
 
     public void AdvanceTurn() {
@@ -48,6 +50,57 @@ public class GameSessionManager : NetworkBehaviour {
 
     public void CheckForChecks(bool old, bool ne) {
         if (MoveManager.Instance.IsKingInCheck()) Debug.Log("My king is in check!");
+    }
+
+    public void OnMyTurn() {
+        var gameBoard = BoardManager.Instance.board;
+        int legalMoves = 0;
+        foreach (var space in gameBoard) {
+            if (space.transform.childCount > 0) {
+                var piece = space.transform.GetChild(0).GetComponent<Piece>();
+                if (piece.ID * (NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? 1 : -1) > 0)
+                    legalMoves += piece.PossibleMoves.Count;
+            }
+        }
+        Debug.Log("No of legal moves: " + legalMoves);
+        if (MoveManager.Instance.IsKingInCheck() && legalMoves == 0) {
+            Debug.Log("Game end - opponent wins!");
+            if (IsServer) EndGameClientRPC(true, Player2.Value); else EndGameServerRPC(true, Player1.Value);
+            //Display canvas
+            return;
+        }
+        if (legalMoves == 0) {
+            Debug.Log("Game end - stalemate");
+            if (IsServer) EndGameClientRPC(false, default); else EndGameServerRPC(false, default);
+            //Display canvas
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void EndGameServerRPC(bool winnerExists, ulong winnerID) {
+        if (winnerExists) {
+            if (winnerID == Player1.Value) {
+                //Display winner canvas
+            } else {
+                //Display loser canvas
+            }
+        } else {
+            //Display draw canvas
+        }
+    }
+
+    [ClientRpc]
+    public void EndGameClientRPC(bool winnerExists, ulong winnerID) {
+        if (IsServer) return;
+        if (winnerExists) {
+            if (winnerID == Player2.Value) {
+                //Display winner canvas
+            } else {
+                //Display loser canvas
+            }
+        } else {
+            //Display draw canvas
+        }
     }
 
     [ServerRpc(RequireOwnership = false)]
