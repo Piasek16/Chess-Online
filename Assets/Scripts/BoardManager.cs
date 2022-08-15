@@ -152,7 +152,10 @@ public class BoardManager : NetworkBehaviour {
     public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         var _oldPiece = GetPieceFromSpace(newPiecePosition);
         if (_oldPiece != null) {
-            (_oldPiece as Pawn)?.ExecuteGhost();
+            if ((_oldPiece as Pawn)?.IsGhost == true && GetPieceFromSpace(oldPiecePosition).GetType() == typeof(Pawn)) {
+                (_oldPiece as Pawn)?.ExecuteGhost();
+            }
+            _oldPiece.transform.parent = null; //Detach from gameboard to make the piece not show up in search for pieces (Destroy gets executerd later in the frame)
             Destroy(_oldPiece.gameObject);
         }
         var movedPiece = GetPieceFromSpace(oldPiecePosition);

@@ -78,7 +78,10 @@ public class Player : NetworkBehaviour {
             //Possibly rewrite as MovePieceLocally
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(location);
             if (_oldPiece != null) {
-                (_oldPiece as Pawn)?.ExecuteGhost();
+                if ((_oldPiece as Pawn)?.IsGhost == true && attachedPiece.GetType() == typeof(Pawn)) {
+                    (_oldPiece as Pawn)?.ExecuteGhost();
+                }
+                _oldPiece.transform.parent = null; //Detach from gameboard to make the piece not show up in search for pieces (Destroy gets executerd later in the frame)
                 Destroy(_oldPiece.gameObject);
             }
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;

@@ -4,6 +4,8 @@ using Unity.Netcode;
 
 public class Pawn : Piece {
 
+    public bool IsGhost => ghostParent != null;
+
     private bool firstMove = true;
     private Pawn ghostParent = null;
 
@@ -68,6 +70,7 @@ public class Pawn : Piece {
     public void ExecuteGhost() {
         if (ghostParent == null) return;
         Debug.Log("Executing ghost function in " + gameObject.name + " on " + Position);
+        ghostParent.transform.parent = null;
         Destroy(ghostParent.gameObject);
         scheduledExecution = true;
     }
@@ -84,6 +87,7 @@ public class Pawn : Piece {
         if (scheduledExecution) { Debug.Log("Ghost Dispose Cancelled - execution scheduled on frame end"); return; }
         Debug.Log("Disposed of ghost " + name + " on " + Position);
         ghostParent = null;
+        transform.parent = null;
         Destroy(gameObject);
     }
 }

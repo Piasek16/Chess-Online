@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Unity.Netcode;
 using UnityEngine;
 
 public class MoveManager : MonoBehaviour {
@@ -9,23 +8,41 @@ public class MoveManager : MonoBehaviour {
         if (Instance != null && Instance != this) Destroy(this); else Instance = this;
     }
 
+    /// <summary>
+    /// Checks if a position is valid to add to a list of possible moves and adds it if it is.
+    /// </summary>
+    /// <param name="moves">List of possible moves to add to</param>
+    /// <param name="position">Position to check</param>
+    /// <returns>True if a position is valid <br/>
+    /// False if there is a real piece on the spot.</returns>
+    private bool CheckAndAddPosition(List<Vector2Int> moves, Vector2Int position) {
+        var pieceInPosition = BoardManager.Instance.GetPieceFromSpace(position);
+        if ((pieceInPosition as Pawn)?.IsGhost == true || pieceInPosition == null) {
+            moves.Add(position);
+            return true;
+        } else { 
+            moves.Add(position);
+            return false;
+        }
+    }
+
     public List<Vector2Int> GetDiagonalMoves(Vector2Int position) {
         List<Vector2Int> moves = new List<Vector2Int>();
         for (int i = 1; position.x + i < 8 && position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y + i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.x + i < 8 && position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y - i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.x - i >= 0 && position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y - i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.x - i >= 0 && position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y + i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         return moves;
     }
@@ -34,19 +51,19 @@ public class MoveManager : MonoBehaviour {
         List<Vector2Int> moves = new List<Vector2Int>();
         for (int i = 1; position.y + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x, position.y + i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.x + i < 8; i++) {
             var _newPosition = new Vector2Int(position.x + i, position.y);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.y - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x, position.y - i);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         for (int i = 1; position.x - i >= 0; i++) {
             var _newPosition = new Vector2Int(position.x - i, position.y);
-            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) moves.Add(_newPosition); else { moves.Add(_newPosition); break; }
+            if (!CheckAndAddPosition(moves, _newPosition)) break;
         }
         return moves;
     }
@@ -104,15 +121,19 @@ public class MoveManager : MonoBehaviour {
     public List<Vector2Int> GetPawnMovesForward(Vector2Int position, bool isWhite, bool firstMove) {
         List<Vector2Int> moves = new List<Vector2Int>();
         if (isWhite && firstMove) {
-            if (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(position.x, position.y + 1)) == null) moves.Add(new Vector2Int(position.x, position.y + 1));
-            if (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(position.x, position.y + 2)) == null) moves.Add(new Vector2Int(position.x, position.y + 2));
+            for (int i=1; i < 3; i++) {
+                var _newPosition = new Vector2Int(position.x, position.y + i);
+                if (!CheckAndAddPosition(moves, _newPosition)) break;
+            }
         } else if (isWhite && !firstMove) {
             if (BoardManager.Instance.GetPieceFromSpace(position.x, position.y + 1) == null) {
                 moves.Add(new Vector2Int(position.x, position.y + 1));
             }
         } else if (!isWhite && firstMove) {
-            if (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(position.x, position.y - 1)) == null) moves.Add(new Vector2Int(position.x, position.y - 1));
-            if (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(position.x, position.y - 2)) == null) moves.Add(new Vector2Int(position.x, position.y - 2));
+            for (int i = 1; i < 3; i++) {
+                var _newPosition = new Vector2Int(position.x, position.y - i);
+                if (!CheckAndAddPosition(moves, _newPosition)) break;
+            }
         } else {
             if (BoardManager.Instance.GetPieceFromSpace(position.x, position.y - 1) == null) {
                 moves.Add(new Vector2Int(position.x, position.y - 1));
