@@ -1,6 +1,5 @@
 using Unity.Netcode;
 using UnityEngine;
-using System.Collections.Generic;
 
 public class GameSessionManager : NetworkBehaviour {
     public static GameSessionManager Instance { get; private set; }
@@ -30,6 +29,22 @@ public class GameSessionManager : NetworkBehaviour {
         Player2.OnValueChanged += PrintValues;
         WhitesTurn.OnValueChanged += SetMyTurn;
         WhitesTurn.OnValueChanged += CheckForChecks;
+
+        //GetComponent<NetworkObject>().NetworkManager = NetworkManager.Singleton;
+        //network manager is null, have to move game session manager to dont destroy? or instantiate it dynamically
+
+        NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
+    }
+
+    private void Singleton_OnClientConnectedCallback(ulong clientID) {
+        Debug.Log("on client connected callback");
+        if (IsServer) SpawnPlayerObject(clientID);
+    }
+
+    private void SpawnPlayerObject(ulong clientID) {
+        Debug.Log("excecuting rpc spawn");
+        var player = Instantiate(LoginSessionManager.Instance.playerObject);
+        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientID);
     }
 
     public void PrintValues(ulong old, ulong ne) {

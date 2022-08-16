@@ -3,7 +3,7 @@ using Unity.Netcode;
 using System.Collections.Generic;
 using System;
 
-public class BoardManager : NetworkBehaviour {
+public class BoardManager : MonoBehaviour {
     [SerializeField] public Color whiteColor;
     [SerializeField] public Color blackColor;
     [SerializeField] public Color highlightOffsetColor;
@@ -35,9 +35,6 @@ public class BoardManager : NetworkBehaviour {
     public static BoardManager Instance { get; private set; }
     void Awake() {
         if (Instance != null && Instance != this) Destroy(this); else Instance = this;
-    }
-
-    void Start() {
         defaultShader = Shader.Find("Unlit/Color");
         pieces = new Dictionary<int, Piece>();
         foreach (Piece piece in piecesPrefabs) {

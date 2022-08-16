@@ -14,7 +14,7 @@ public class Player : NetworkBehaviour {
     public override void OnNetworkSpawn() {
         PlayerName.OnValueChanged += UpdatePlayerObjectName;
         if (IsOwner) {
-            var _playerName = FindObjectOfType<Canvas>().GetComponent<LoginManager>().username;
+            var _playerName = LoginSessionManager.Instance.Username;
             PlayerName.Value = _playerName;
             UpdatePlayerObjectName(default, default);
         }
