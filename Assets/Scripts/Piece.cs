@@ -10,6 +10,7 @@ public class Piece : MonoBehaviour {
 
     protected List<Vector2Int> possibleMoves;
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
+    private List<Vector2Int> highlightedPossibleMoves;
 
     void Start() {
         possibleMoves = new List<Vector2Int>();
@@ -17,6 +18,7 @@ public class Piece : MonoBehaviour {
 
     public void HighlightPossibleMoves(out List<Vector2Int> oldPossibleMoves) {
         oldPossibleMoves = PossibleMoves;
+        highlightedPossibleMoves = new List<Vector2Int>(PossibleMoves); //Copy list
         if (possibleMoves == null) return;
         foreach (var move in possibleMoves) {
             var moveSpace = BoardManager.Instance.board[move.x, move.y];
@@ -25,8 +27,8 @@ public class Piece : MonoBehaviour {
     }
 
     public void ResetPossibleMovesHighlight() {
-        if (possibleMoves == null) return;
-        foreach (var move in possibleMoves) {
+        if (highlightedPossibleMoves == null) return;
+        foreach (var move in highlightedPossibleMoves) {
             BoardManager.Instance.board[move.x, move.y].GetComponent<MeshRenderer>().material.color += BoardManager.Instance.highlightOffsetColor;
         }
     }

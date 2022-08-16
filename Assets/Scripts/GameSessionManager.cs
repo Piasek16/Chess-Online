@@ -104,9 +104,13 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     [ServerRpc(RequireOwnership = false)]
+    public void AdvanceTurnServerRPC() {
+        AdvanceTurn();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
-        AdvanceTurn();
     }
 
     [ClientRpc]

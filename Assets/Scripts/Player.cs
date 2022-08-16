@@ -72,7 +72,7 @@ public class Player : NetworkBehaviour {
 
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
-        if(!oldPossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
+        if (!oldPossibleMoves.Contains(attachedPiece.Position) || !GameSessionManager.Instance.MyTurn) {
             attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
         } else {
             //Possibly rewrite as MovePieceLocally
@@ -86,9 +86,24 @@ public class Player : NetworkBehaviour {
             }
             attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
             Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
-            if (IsServer) { GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); GameSessionManager.Instance.AdvanceTurn(); }
-            else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
+            if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
             (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
+            if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(location.x - oldPiecePosition.x) == 2) { //Castling check
+                if (location.x - oldPiecePosition.x == 2) {
+                    BoardManager.Instance.MovePiece(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
+                    if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
+                    (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x - 1, location.y)) as Rook)?.FirstMoveMade();
+                }
+                if (location.x - oldPiecePosition.x == -2) {
+                    BoardManager.Instance.MovePiece(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
+                    if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
+                    (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x + 1, location.y)) as Rook)?.FirstMoveMade();
+                }
+                (attachedPiece as King)?.FirstMoveMade();
+            }
+            (attachedPiece as King)?.FirstMoveMade();
+            (attachedPiece as Rook)?.FirstMoveMade();
+            GameSessionManager.Instance.AdvanceTurnServerRPC();
         }
         attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMovesHighlight();
