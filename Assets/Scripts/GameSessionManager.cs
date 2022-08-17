@@ -37,8 +37,8 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private void Singleton_OnClientConnectedCallback(ulong clientID) {
-        Debug.Log("on client connected callback");
-        if (IsServer) SpawnPlayerObject(clientID);
+        Debug.Log("on client connected callback uid: " + clientID);
+        if (IsServer && NetworkManager.Singleton.name != "TestingPurposeNetworkManager") SpawnPlayerObject(clientID);
     }
 
     private void SpawnPlayerObject(ulong clientID) {

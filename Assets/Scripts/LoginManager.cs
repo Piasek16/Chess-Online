@@ -6,6 +6,7 @@ public class LoginManager : MonoBehaviour {
 
     string mode = "not connected";
     public string username = "unnamed";
+    public Player playerObject;
 
     public void StartHost() {
         username = transform.GetChild(0).GetComponent<TMP_InputField>().text;

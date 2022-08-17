@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
 using System.Collections.Generic;
+using TMPro;
 
 public class Player : NetworkBehaviour {
     public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
@@ -12,9 +13,11 @@ public class Player : NetworkBehaviour {
     Vector2 blackPosition = new Vector2(-2f, 6f);
 
     public override void OnNetworkSpawn() {
+        usernameText = GetComponentInChildren<TMP_Text>();
+
         PlayerName.OnValueChanged += UpdatePlayerObjectName;
         if (IsOwner) {
-            var _playerName = LoginSessionManager.Instance.Username;
+            var _playerName = LoginSessionManager.Instance != null ? LoginSessionManager.Instance.Username : "Piasek";
             PlayerName.Value = _playerName;
             UpdatePlayerObjectName(default, default);
         }
@@ -27,7 +30,17 @@ public class Player : NetworkBehaviour {
         }
 
         if (IsOwner) {
-            if (!playerColor) Camera.main.transform.rotation = Quaternion.Euler(0, 0, 180);
+            if (!playerColor) {
+                Quaternion rotated = Quaternion.Euler(0, 0, 180);
+                Camera.main.transform.SetPositionAndRotation(
+                    new Vector3(6.61111f, Camera.main.transform.position.y, Camera.main.transform.position.z), 
+                    rotated);
+                transform.rotation = rotated;
+                foreach (Player p in FindObjectsOfType<Player>()) {
+                    p.transform.position = new Vector2(p.transform.position.x + 11, p.transform.position.y);
+                    if (p.playerColor == true) p.transform.rotation = rotated;
+                }
+            }
         }
 
         if (IsOwner) BoardManager.Instance.OnPlayerLogin();
@@ -37,14 +50,17 @@ public class Player : NetworkBehaviour {
 
     void UpdatePlayerObjectName(FixedString128Bytes previous, FixedString128Bytes newValue) {
         gameObject.name = "Player (" + PlayerName.Value + ")";
+        usernameText.text = PlayerName.Value.ToString();
     }
 
     Camera defaultCamera;
     Vector2 mousePos;
     Piece attachedPiece = null;
     bool isAttached = false;
+    TMP_Text usernameText;
 
     void Start() {
+        //Called after OnNetworkSpawn
         defaultCamera = Camera.main;
     }
 

@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using Unity.Netcode;
 
 public class CustomLogger : MonoBehaviour {
 
@@ -8,6 +7,7 @@ public class CustomLogger : MonoBehaviour {
     Queue myLogQueue = new Queue();
 
     void Start() {
+        DontDestroyOnLoad(gameObject);
         Debug.Log("Started up logging.");
     }
 
