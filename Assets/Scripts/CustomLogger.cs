@@ -4,7 +4,7 @@ using System.IO;
 
 public class CustomLogger : MonoBehaviour {
 
-    uint qsize = 15;  // number of messages to keep
+    uint qsize = 23;  // number of messages to keep
     Queue myLogQueue = new Queue();
 
     string logFileName;
@@ -38,7 +38,7 @@ public class CustomLogger : MonoBehaviour {
     }
 
     void OnGUI() {
-        GUILayout.BeginArea(new Rect(0, 100, 400, Screen.height));
+        GUILayout.BeginArea(new Rect(0, 0, 400, Screen.height));
         GUILayout.Label("\n" + string.Join("\n", myLogQueue.ToArray()));
         GUILayout.EndArea();
     }

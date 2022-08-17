@@ -125,12 +125,14 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ServerRpc(RequireOwnership = false)]
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
+        Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
     }
 
     [ClientRpc]
     public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         if (IsServer) return;
+        Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
     }
 
