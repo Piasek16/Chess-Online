@@ -12,9 +12,13 @@ public class Piece : MonoBehaviour {
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
     private List<Vector2Int> highlightedPossibleMoves;
 
+    public bool FirstMove { get; protected set; } = true;
+
     void Start() {
         possibleMoves = new List<Vector2Int>();
     }
+
+    public void FirstMoveMade() { FirstMove = false; }
 
     public void HighlightPossibleMoves(out List<Vector2Int> oldPossibleMoves) {
         oldPossibleMoves = PossibleMoves;

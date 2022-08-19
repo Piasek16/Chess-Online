@@ -58,6 +58,8 @@ public class Player : NetworkBehaviour {
     Piece attachedPiece = null;
     bool isAttached = false;
     TMP_Text usernameText;
+    bool pawnPromotionMode = false;
+    Vector2Int promotionLocation;
 
     void Start() {
         //Called after OnNetworkSpawn
@@ -66,6 +68,10 @@ public class Player : NetworkBehaviour {
 
     void Update() {
         if (!IsOwner) return;
+        if (pawnPromotionMode) {
+            ProceedPromotion();
+            return;
+        }
         mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
         var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
         if (Input.GetMouseButtonDown(0)) AttachPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos.x, roundedMousePos.y));
@@ -104,22 +110,29 @@ public class Player : NetworkBehaviour {
             Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
             if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
             (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
+            attachedPiece.FirstMoveMade();
             if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(location.x - oldPiecePosition.x) == 2) { //Castling check
                 if (location.x - oldPiecePosition.x == 2) {
                     BoardManager.Instance.MovePiece(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
                     if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
-                    (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x - 1, location.y)) as Rook)?.FirstMoveMade();
+                    BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x - 1, location.y))?.FirstMoveMade();
                 }
                 if (location.x - oldPiecePosition.x == -2) {
                     BoardManager.Instance.MovePiece(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
                     if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
-                    (BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x + 1, location.y)) as Rook)?.FirstMoveMade();
+                    BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x + 1, location.y))?.FirstMoveMade();
                 }
-                (attachedPiece as King)?.FirstMoveMade();
             }
-            (attachedPiece as King)?.FirstMoveMade();
-            (attachedPiece as Rook)?.FirstMoveMade();
-            GameSessionManager.Instance.AdvanceTurnServerRPC();
+            if ((attachedPiece as Pawn)?.CheckForPromotion() == true) {
+                pawnPromotionMode = true;
+                promotionLocation = location;
+                Debug.Log("Choose a promotion by typing:");
+                Debug.Log("1 - Queen");
+                Debug.Log("2 - Rook");
+                Debug.Log("3 - Bishop");
+                Debug.Log("4 - Knight");
+            }
+            if (!pawnPromotionMode) GameSessionManager.Instance.AdvanceTurnServerRPC();
         }
         attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMovesHighlight();
@@ -129,5 +142,21 @@ public class Player : NetworkBehaviour {
 
     void HoldPiece() {
         attachedPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -0.1f);
+    }
+
+    void ProceedPromotion() {
+        if (Input.GetKeyDown(KeyCode.Alpha1)) PromotePawnTo(playerColor ? BoardManager.PieceType.WQueen : BoardManager.PieceType.BQueen);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) PromotePawnTo(playerColor ? BoardManager.PieceType.WRook : BoardManager.PieceType.BRook);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) PromotePawnTo(playerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) PromotePawnTo(playerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight);
+    }
+
+    void PromotePawnTo(BoardManager.PieceType p) {
+        pawnPromotionMode = false;
+        BoardManager.Instance.DestroyPiece(promotionLocation);
+        BoardManager.Instance.SetSpace(promotionLocation, p);
+        if (IsServer) GameSessionManager.Instance.PromotePawnToClientRPC(p, promotionLocation); else GameSessionManager.Instance.PromotePawnToServerRPC(p, promotionLocation);
+        promotionLocation = Vector2Int.zero;
+        GameSessionManager.Instance.AdvanceTurnServerRPC();
     }
 }

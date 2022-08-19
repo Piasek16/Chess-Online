@@ -128,6 +128,10 @@ public class BoardManager : MonoBehaviour {
     }
 
     public Piece GetPieceFromSpace(int positionX, int positionY) {
+        if (!MoveManager.Instance.IsPositionValid(new Vector2Int(positionX, positionY))) {
+            Debug.LogWarning("Player tried to get a piece from a non existent position " + new Vector2Int(positionX, positionY));
+            return null;
+        }
         GameObject _space = board[positionX, positionY];
         if (_space.transform.childCount >= 1) return _space.transform.GetComponentInChildren<Piece>();
         return null;
@@ -165,5 +169,13 @@ public class BoardManager : MonoBehaviour {
         SetSpace(behind, PieceType.WPawn);
         var ghost = GetPieceFromSpace(behind);
         ghost.GetComponent<Pawn>().InitGhost(parentPawnPosition);
+    }
+
+    public void DestroyPiece(Vector2Int position) {
+        var piece = GetPieceFromSpace(position);
+        if (piece != null) {
+            piece.transform.parent = null;
+            Destroy(piece.gameObject);
+        }
     }
 }

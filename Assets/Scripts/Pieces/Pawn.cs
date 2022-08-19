@@ -6,13 +6,12 @@ public class Pawn : Piece {
 
     public bool IsGhost => ghostParent != null;
 
-    private bool firstMove = true;
     private Pawn ghostParent = null;
 
     public override List<Vector2Int> PossibleMoves {
         get {
             possibleMoves.Clear();
-            possibleMoves.AddRange(MoveManager.Instance.GetPawnMovesForward(Position, ID > 0, firstMove));
+            possibleMoves.AddRange(MoveManager.Instance.GetPawnMovesForward(Position, ID > 0, FirstMove));
             possibleMoves.AddRange(MoveManager.Instance.GetPawnDiagonalMoves(Position, ID > 0));
             RemoveFriendlyPiecesFromMoves();
             RemoveIllegalMoves();
@@ -21,7 +20,7 @@ public class Pawn : Piece {
     }
 
     public void FirstMoveMade(bool wasTwoSquares) {
-        firstMove = false;
+        FirstMove = false;
         if (wasTwoSquares) {
             var left = new Vector2Int(Position.x - 1, Position.y);
             var right = new Vector2Int(Position.x + 1, Position.y);
@@ -89,5 +88,11 @@ public class Pawn : Piece {
         ghostParent = null;
         transform.parent = null;
         Destroy(gameObject);
+    }
+
+    public bool CheckForPromotion() {
+        if (ID > 0 && Position.y == 7) return true;
+        if (ID < 0 && Position.y == 0) return true;
+        return false;
     }
 }

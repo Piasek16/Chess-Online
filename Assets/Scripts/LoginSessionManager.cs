@@ -51,7 +51,7 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     public void ConnectClient() {
-        if (NetworkManager.Singleton.StartClient()) Debug.Log("d");
+        if (NetworkManager.Singleton.StartClient()) Debug.Log("Client started successfully!");
             //NetworkManager.Singleton.SceneManager.LoadScene("ClassicMode", LoadSceneMode.Single);
         //SceneManager.LoadScene(1);
     }

@@ -80,6 +80,7 @@ public class GameSessionManager : NetworkBehaviour {
         Debug.Log("No of legal moves: " + legalMoves);
         if (MoveManager.Instance.IsKingInCheck() && legalMoves == 0) {
             Debug.Log("Game end - opponent wins!");
+            Debug.Log("You lost ;)");
             if (IsServer) EndGameClientRPC(true, Player2.Value); else EndGameServerRPC(true, Player1.Value);
             //Display canvas
             return;
@@ -96,11 +97,14 @@ public class GameSessionManager : NetworkBehaviour {
         if (winnerExists) {
             if (winnerID == Player1.Value) {
                 //Display winner canvas
+                Debug.Log("Game end - you win!");
             } else {
                 //Display loser canvas
+                Debug.Log("Game end - you lose!");
             }
         } else {
             //Display draw canvas
+            Debug.Log("Game end - stalemate");
         }
     }
 
@@ -110,11 +114,14 @@ public class GameSessionManager : NetworkBehaviour {
         if (winnerExists) {
             if (winnerID == Player2.Value) {
                 //Display winner canvas
+                Debug.Log("Game end - you win!");
             } else {
                 //Display loser canvas
+                Debug.Log("Game end - you lose!");
             }
         } else {
             //Display draw canvas
+            Debug.Log("Game end - stalemate");
         }
     }
 
@@ -127,6 +134,7 @@ public class GameSessionManager : NetworkBehaviour {
     public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
+        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
     }
 
     [ClientRpc]
@@ -134,6 +142,7 @@ public class GameSessionManager : NetworkBehaviour {
         if (IsServer) return;
         Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
+        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -158,5 +167,20 @@ public class GameSessionManager : NetworkBehaviour {
     public void DisposeOfGhostClientRPC(Vector2Int location) {
         if (IsServer) return;
         (BoardManager.Instance.GetPieceFromSpace(location) as Pawn)?.DisposeOfGhost();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void PromotePawnToServerRPC(BoardManager.PieceType pieceType, Vector2Int location) {
+        Debug.Log("[ServerRPC] Promoted pawn from " + location + " to " + pieceType);
+        BoardManager.Instance.DestroyPiece(location);
+        BoardManager.Instance.SetSpace(location, pieceType);
+    }
+
+    [ClientRpc]
+    public void PromotePawnToClientRPC(BoardManager.PieceType pieceType, Vector2Int location) {
+        if (IsServer) return;
+        Debug.Log("[ClientRPC] Promoted pawn from " + location + " to " + pieceType);
+        BoardManager.Instance.DestroyPiece(location);
+        BoardManager.Instance.SetSpace(location, pieceType);
     }
 }

@@ -20,7 +20,7 @@ public class MoveManager : MonoBehaviour {
         if ((pieceInPosition as Pawn)?.IsGhost == true || pieceInPosition == null) {
             moves.Add(position);
             return true;
-        } else { 
+        } else {
             moves.Add(position);
             return false;
         }
@@ -121,7 +121,7 @@ public class MoveManager : MonoBehaviour {
     public List<Vector2Int> GetPawnMovesForward(Vector2Int position, bool isWhite, bool firstMove) {
         List<Vector2Int> moves = new List<Vector2Int>();
         if (isWhite && firstMove) {
-            for (int i=1; i < 3; i++) {
+            for (int i = 1; i < 3; i++) {
                 var _newPosition = new Vector2Int(position.x, position.y + i);
                 if (!CheckAndAddPosition(moves, _newPosition)) break;
             }
