@@ -123,20 +123,26 @@ public class MoveManager : MonoBehaviour {
         if (isWhite && firstMove) {
             for (int i = 1; i < 3; i++) {
                 var _newPosition = new Vector2Int(position.x, position.y + i);
+                if (!IsPositionValid(_newPosition)) break;
                 if (!CheckAndAddPosition(moves, _newPosition)) break;
             }
         } else if (isWhite && !firstMove) {
-            if (BoardManager.Instance.GetPieceFromSpace(position.x, position.y + 1) == null) {
-                moves.Add(new Vector2Int(position.x, position.y + 1));
+            var _newPosition = new Vector2Int(position.x, position.y + 1);
+            if (!IsPositionValid(_newPosition)) return moves;
+            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) {
+                moves.Add(_newPosition);
             }
         } else if (!isWhite && firstMove) {
             for (int i = 1; i < 3; i++) {
                 var _newPosition = new Vector2Int(position.x, position.y - i);
+                if (!IsPositionValid(_newPosition)) break;
                 if (!CheckAndAddPosition(moves, _newPosition)) break;
             }
         } else {
-            if (BoardManager.Instance.GetPieceFromSpace(position.x, position.y - 1) == null) {
-                moves.Add(new Vector2Int(position.x, position.y - 1));
+            var _newPosition = new Vector2Int(position.x, position.y - 1);
+            if (!IsPositionValid(_newPosition)) return moves;
+            if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) {
+                moves.Add(_newPosition);
             }
         }
         return moves;

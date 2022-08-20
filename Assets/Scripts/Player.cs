@@ -113,15 +113,17 @@ public class Player : NetworkBehaviour {
     void DetachPiece(Vector2Int location) {
         if (attachedPiece == null) return;
         if (!oldPossibleMoves.Contains(attachedPiece.Position)) {
-            attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
+            RestoreAttachedPiecePosition();
         } else if (!GameSessionManager.Instance.MyTurn) {
             RegisterPreMove(location);
-            attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
+            RestoreAttachedPiecePosition();
         } else {
-            MovePieceLocally(location);
+            RestoreAttachedPiecePosition();
+            BoardManager.Instance.MovePiece(oldPiecePosition, location);
+            RunLocalMoveLogic(location);
+
             if (!pawnPromotionMode) GameSessionManager.Instance.AdvanceTurnServerRPC();
         }
-        attachedPiece.transform.localPosition = Vector3.zero;
         attachedPiece.ResetPossibleMovesHighlight();
         attachedPiece = null;
         isAttached = false;
@@ -131,32 +133,51 @@ public class Player : NetworkBehaviour {
         attachedPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -0.2f);
     }
 
-    void MovePieceLocally(Vector2Int location) {
-        var _oldPiece = BoardManager.Instance.GetPieceFromSpace(location);
-        if (_oldPiece != null) {
-            if ((_oldPiece as Pawn)?.IsGhost == true && attachedPiece.GetType() == typeof(Pawn)) {
-                (_oldPiece as Pawn)?.ExecuteGhost();
-            }
-            _oldPiece.transform.parent = null; //Detach from gameboard to make the piece not show up in search for pieces (Destroy gets executerd later in the frame)
-            Destroy(_oldPiece.gameObject);
+    void RestoreAttachedPiecePosition() {
+        if (attachedPiece != null) {
+            attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
+            attachedPiece.transform.localPosition = Vector3.zero;
         }
-        attachedPiece.transform.parent = BoardManager.Instance.board[location.x, location.y].transform;
+    }
+
+    void UpdateSecondPlayerOnMove(Vector2Int from, Vector2Int to) {
+        if (IsServer)
+            GameSessionManager.Instance.MovePieceClientRPC(from, to);
+        else
+            GameSessionManager.Instance.MovePieceServerRPC(from, to);
+    }
+
+    void RunLocalMoveLogic(Vector2Int location) {
         Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
-        if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(oldPiecePosition, location); else GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
+        UpdateSecondPlayerOnMove(oldPiecePosition, location);
+
         (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
         attachedPiece.FirstMoveMade();
-        if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(location.x - oldPiecePosition.x) == 2) { //Castling check
+
+        CheckForCastling(location);
+        CheckForPromotion(location);
+    }
+
+    void CheckForCastling(Vector2Int location) {
+        if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(location.x - oldPiecePosition.x) == 2) {
             if (location.x - oldPiecePosition.x == 2) {
-                BoardManager.Instance.MovePiece(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
-                if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x + 1, location.y), new Vector2Int(location.x - 1, location.y));
-                BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x - 1, location.y))?.FirstMoveMade();
+                Vector2Int right = new Vector2Int(location.x + 1, location.y);
+                Vector2Int left = new Vector2Int(location.x - 1, location.y);
+                BoardManager.Instance.MovePiece(right, left);
+                UpdateSecondPlayerOnMove(right, left);
+                BoardManager.Instance.GetPieceFromSpace(left)?.FirstMoveMade();
             }
             if (location.x - oldPiecePosition.x == -2) {
-                BoardManager.Instance.MovePiece(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
-                if (IsServer) GameSessionManager.Instance.MovePieceClientRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y)); else GameSessionManager.Instance.MovePieceServerRPC(new Vector2Int(location.x - 2, location.y), new Vector2Int(location.x + 1, location.y));
-                BoardManager.Instance.GetPieceFromSpace(new Vector2Int(location.x + 1, location.y))?.FirstMoveMade();
+                Vector2Int right = new Vector2Int(location.x + 1, location.y);
+                Vector2Int left = new Vector2Int(location.x - 2, location.y);
+                BoardManager.Instance.MovePiece(left, right);
+                UpdateSecondPlayerOnMove(left, right);
+                BoardManager.Instance.GetPieceFromSpace(right)?.FirstMoveMade();
             }
         }
+    }
+
+    void CheckForPromotion(Vector2Int location) {
         if ((attachedPiece as Pawn)?.CheckForPromotion() == true) {
             pawnPromotionMode = true;
             promotionLocation = location;
@@ -190,19 +211,17 @@ public class Player : NetworkBehaviour {
     }
 
     void ExecutePreMove() {
-        var preMovePiece = BoardManager.Instance.GetPieceFromSpace(preMoves[0][0]);
-        attachedPiece = preMovePiece;
-        attachedPiece.transform.parent = null;
-        oldPiecePosition = preMovePiece.Position;
-        isAttached = true;
-        Debug.Log("Executing a premove of " + preMovePiece.name + " from " + oldPiecePosition);
-        MovePieceLocally(preMoves[0][1]);
-        Debug.Log("Premove executed, piece moved to " + preMoves[0][1]);
+        Vector2Int oldPosition = preMoves[0][0];
+        Vector2Int newPosition = preMoves[0][1];
+        var preMovePiece = BoardManager.Instance.GetPieceFromSpace(oldPosition);
+        Debug.Log("Executing a premove of " + preMovePiece.name + " from " + oldPosition);
+        BoardManager.Instance.MovePiece(oldPosition, newPosition);
+
+        //RunLocalMoveLogic
+        UpdateSecondPlayerOnMove(oldPosition, newPosition);
+
+        Debug.Log("Premove executed, piece moved to " + newPosition);
         preMoves.RemoveAt(0);
-        attachedPiece.transform.localPosition = Vector3.zero;
-        oldPiecePosition = Vector2Int.zero;
-        attachedPiece = null;
-        isAttached = false;
         Debug.Log("Removed premove 0 from list");
         Debug.Log("Remaining premoves: " + preMoves.Count);
         GameSessionManager.Instance.AdvanceTurnServerRPC();
@@ -213,6 +232,7 @@ public class Player : NetworkBehaviour {
     }
 
     void DrawArrowPointer(Vector2Int tipLocation) {
+        if (arrowPointerBeginning == tipLocation) return;
         if (arrowPointerBeginning != null) {
             var arrowVector = tipLocation - arrowPointerBeginning.Value;
             var lookVector = Vector3.Cross((Vector3Int)tipLocation - (Vector3Int)arrowPointerBeginning.Value, Vector3.forward);
@@ -225,9 +245,7 @@ public class Player : NetworkBehaviour {
             };
             arrow.transform.localScale = new Vector3(arrowLength, 0.2f, 0);
             arrow.transform.rotation = Quaternion.LookRotation(Vector3.forward, lookVector);
-            Debug.Log("Creating a pointer arrow with parameters:");
-            Debug.Log("ArrowVector: " + arrowVector);
-            Debug.Log("Distance: " + arrowLength);
+            Debug.Log("Creating a pointer arrow: " + arrowPointerBeginning + " -> " + tipLocation + " Direction: " + arrowVector);
 
             var arrowPointer = CreateArrowPointer();
             arrowPointer.transform.position = new Vector3(tipLocation.x, tipLocation.y, -0.1f);
