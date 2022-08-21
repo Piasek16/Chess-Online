@@ -431,6 +431,12 @@ MonoBehaviour:
         byte0124: 0
         byte0125: 0
   playerColor: 0
+  preMoveColorWhite:
+    serializedVersion: 2
+    rgba: 6645213
+  preMoveColorBlack:
+    serializedVersion: 2
+    rgba: 3355613
 --- !u!222 &2639847669123114410
 CanvasRenderer:
   m_ObjectHideFlags: 0

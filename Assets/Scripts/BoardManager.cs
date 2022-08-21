@@ -178,4 +178,30 @@ public class BoardManager : MonoBehaviour {
             Destroy(piece.gameObject);
         }
     }
+
+    public void SetTileColor(Vector2Int tileLocation, Color32 colorWhite, Color32 colorBlack) {
+        Debug.Log("Tile color from " + tileLocation + " is " + board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color);
+        Debug.Log("Black color is: " + blackColor);
+        if (board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color == blackColor) {
+            board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = colorBlack;
+        } else {
+            board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = colorWhite;
+        }
+    }
+
+    public void RestoreTileColor(Vector2Int tileLocation) {
+        if (tileLocation.x % 2 == 0) {
+            if (tileLocation.y % 2 == 0) {
+                board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = blackColor;
+            } else {
+                board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = whiteColor;
+            }
+        } else {
+            if (tileLocation.y % 2 == 0) {
+                board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = whiteColor;
+            } else {
+                board[tileLocation.x, tileLocation.y].GetComponent<MeshRenderer>().material.color = blackColor;
+            }
+        }
+    }
 }
