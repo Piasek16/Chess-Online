@@ -1577,6 +1577,7 @@ MonoBehaviour:
   WhitesTurn:
     m_InternalValue: 0
   MyTurn: 0
+  GameStarted: 0
 --- !u!4 &1453127489
 Transform:
   m_ObjectHideFlags: 0
@@ -1990,6 +1991,8 @@ MonoBehaviour:
   whiteColor: {r: 0.90588236, g: 0.8039216, b: 0.5411765, a: 0}
   blackColor: {r: 0.8679245, g: 0.6627451, b: 0.34117648, a: 0}
   highlightOffsetColor: {r: 0.39215687, g: 0, b: 0.39215687, a: 0}
+  whiteHighlightColor: {r: 0.5137255, g: 0.80392164, b: 0.14901961, a: 0}
+  blackHighlightColor: {r: 0.4745098, g: 0.6627451, b: 0, a: 0}
   piecesPrefabs:
   - {fileID: 3965885595701310013, guid: 473400df95452d944af3cbdcb29be8c8, type: 3}
   - {fileID: -1417802348366178195, guid: 078a6b0c7f318e241b0c91d0e213f109, type: 3}

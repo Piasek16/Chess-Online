@@ -85,7 +85,17 @@ public class Player : NetworkBehaviour {
             ProceedPromotion();
             return;
         }
-        if (GameSessionManager.Instance.MyTurn && preMoves != null && preMoves.Count > 0) {
+        mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
+        var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
+        if (Input.GetMouseButtonDown(0)) AttachPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
+        if (Input.GetMouseButtonUp(0)) DetachPiece(roundedMousePos);
+        if (isAttached) HoldPiece();
+        if (Input.GetMouseButtonDown(1)) SetArrowPointerBeginning(roundedMousePos);
+        if (Input.GetMouseButtonUp(1)) DrawArrowPointer(roundedMousePos);
+    }
+
+    public void OnMyTurn() {
+        if (preMoves != null && preMoves.Count > 0) {
             //Official board gets restored by game session
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
             if (pieceToMove != null && pieceToMove.ID * (playerColor ? 1 : -1) > 0 && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
@@ -96,13 +106,6 @@ public class Player : NetworkBehaviour {
                 preMoves.Clear();
             }
         }
-        mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
-        var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
-        if (Input.GetMouseButtonDown(0)) AttachPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
-        if (Input.GetMouseButtonUp(0)) DetachPiece(roundedMousePos);
-        if (isAttached) HoldPiece();
-        if (Input.GetMouseButtonDown(1)) SetArrowPointerBeginning(roundedMousePos);
-        if (Input.GetMouseButtonUp(1)) DrawArrowPointer(roundedMousePos);
     }
 
     private Vector2Int oldPiecePosition;
@@ -127,7 +130,6 @@ public class Player : NetworkBehaviour {
         } else if (!GameSessionManager.Instance.MyTurn) {
             RestoreAttachedPiecePosition();
             RegisterPreMove(attachedPiece, oldPiecePosition, location);
-            BoardManager.Instance.MovePiece(oldPiecePosition, location);
         } else {
             RestoreAttachedPiecePosition();
             BoardManager.Instance.MovePiece(oldPiecePosition, location);
@@ -221,6 +223,7 @@ public class Player : NetworkBehaviour {
         preMoves.Add(preMove);
         if (capturedPiece != null) capturedPiece.transform.parent = capturedFromPremovesContainer.transform;
         BoardManager.Instance.SetTileColor(to, preMoveColorWhite, preMoveColorBlack);
+        BoardManager.Instance.MovePiece(from, to);
         pieceToMove.transform.localPosition = new Vector3(0, 0, -0.1f);
         Debug.Log("Added a premove of " + pieceToMove.name + " from " + from + " to " + to + " while capturing " + capturedPiece);
     }
@@ -236,7 +239,6 @@ public class Player : NetworkBehaviour {
 
         Debug.Log("Executing a premove of " + preMovePiece.name + " from " + oldPosition);
         BoardManager.Instance.MovePiece(oldPosition, newPosition);
-        //BoardManager.Instance.SetTileColor(newPosition, preMoveColorWhite, preMoveColorBlack);
         BoardManager.Instance.RestoreTileColor(newPosition);
 
         RunLocalMoveLogic(newPosition);
@@ -332,7 +334,6 @@ public class Player : NetworkBehaviour {
             foreach (PreMove preMove in preMoves) {
                 if (BoardManager.Instance.GetPieceFromSpace(preMove.to).ID * (playerColor ? 1 : -1) < 0) continue;
                 BoardManager.Instance.MovePiece(preMove.to, preMove.from);
-                //BoardManager.Instance.SetTileColor(preMove.to, preMoveColorWhite, preMoveColorBlack);
                 BoardManager.Instance.RestoreTileColor(preMove.to);
                 Debug.Log("Restoring a move to " + preMove.to + " from " + preMove.from);
                 if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = BoardManager.Instance.board[preMove.to.x, preMove.to.y].transform;

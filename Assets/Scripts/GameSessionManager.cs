@@ -92,6 +92,8 @@ public class GameSessionManager : NetworkBehaviour {
             if (IsServer) EndGameClientRPC(false, default); else EndGameServerRPC(false, default);
             //Display canvas
         }
+
+        NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().OnMyTurn();
     }
 
     [ServerRpc(RequireOwnership = false)]

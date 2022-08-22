@@ -10,7 +10,6 @@ public class Piece : MonoBehaviour {
 
     protected List<Vector2Int> possibleMoves;
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
-    private List<Vector2Int> highlightedPossibleMoves;
 
     public bool FirstMove { get; protected set; } = true;
 
@@ -20,20 +19,24 @@ public class Piece : MonoBehaviour {
 
     public void FirstMoveMade() { FirstMove = false; }
 
+    private Dictionary<GameObject, Color> spacesHighlighted;
+
     public void HighlightPossibleMoves(out List<Vector2Int> oldPossibleMoves) {
         oldPossibleMoves = PossibleMoves;
-        highlightedPossibleMoves = new List<Vector2Int>(PossibleMoves); //Copy list
         if (possibleMoves == null) return;
+        spacesHighlighted = new Dictionary<GameObject, Color>();
         foreach (var move in possibleMoves) {
             var moveSpace = BoardManager.Instance.board[move.x, move.y];
-            moveSpace.GetComponent<MeshRenderer>().material.color -= BoardManager.Instance.highlightOffsetColor;
+            Color spaceColor = moveSpace.GetComponent<MeshRenderer>().material.color;
+            spacesHighlighted.Add(moveSpace, spaceColor);
+            BoardManager.Instance.HighlightTile(moveSpace);
         }
     }
 
     public void ResetPossibleMovesHighlight() {
-        if (highlightedPossibleMoves == null) return;
-        foreach (var move in highlightedPossibleMoves) {
-            BoardManager.Instance.board[move.x, move.y].GetComponent<MeshRenderer>().material.color += BoardManager.Instance.highlightOffsetColor;
+        if (spacesHighlighted == null) return;
+        foreach (var space in spacesHighlighted.Keys) {
+            space.GetComponent<MeshRenderer>().material.color = spacesHighlighted[space];
         }
     }
 
