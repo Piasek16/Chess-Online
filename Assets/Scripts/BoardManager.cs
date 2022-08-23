@@ -17,6 +17,7 @@ public class BoardManager : MonoBehaviour {
     public King localPlayerKing;
     public GameObject[,] board = new GameObject[8, 8];
     public enum PieceType : int {
+        Empty = 0,
         WKing = 1,
         WQueen = 2,
         WBishop = 3,
@@ -61,8 +62,10 @@ public class BoardManager : MonoBehaviour {
     public void OnPlayerLogin() {
         localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor;
         GenerateBoard();
-        DefaultSetup();
+        LoadBoardState("5*/6*/////-6*/-5*/4*/6*/////-6*/-4*/3*/6*/////-6*/-3*/2*/6*/////-6*/-2*/1*/6*/////-6*/-1*/3*/6*/////-6*/-3*/4*/6*/////-6*/-4*/5*/6*/////-6*/-5*/");
+        //DefaultSetup();
         localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
+        Debug.Log("Boardstate: " + ExportBoardState());
     }
 
     void GenerateBoard() {
@@ -90,6 +93,10 @@ public class BoardManager : MonoBehaviour {
         return _newSpace;
     }
 
+    public void SetSpace(GameObject space, PieceType p) {
+        SetSpace((int)space.transform.position.x, (int)space.transform.position.y, p);
+    }
+
     public void SetSpace(string location, PieceType p) {
         if (location.Length > 2) { Debug.LogError("Wrong Piece Format"); return; }
         SetSpace(files.IndexOf(location[0]), location[1] - '0' - 1, p);
@@ -101,6 +108,12 @@ public class BoardManager : MonoBehaviour {
         SetSpace(location.x, location.y, p);
     }
     public void SetSpace(int positionX, int positionY, PieceType p) {
+        if (!MoveManager.Instance.IsPositionValid(new Vector2Int(positionX, positionY))) return;
+        if (p == PieceType.Empty) {
+            var piece = GetPieceFromSpace(positionX, positionY);
+            if (piece != null) Destroy(piece.gameObject);
+            return;
+        }
         var _ = Instantiate(pieces[(int)p], Vector3.zero, localPlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
         _.transform.localPosition = Vector3.zero;
     }
@@ -150,6 +163,10 @@ public class BoardManager : MonoBehaviour {
     public Piece GetPieceFromSpace(string position) {
         if (position.Length > 2) { Debug.LogError("Wrong Piece Format"); return null; }
         return GetPieceFromSpace(files.IndexOf(position[0]), position[1] - '0' - 1);
+    }
+
+    public Piece GetPieceFromSpace(GameObject space) {
+        return GetPieceFromSpace((int)space.transform.position.x, (int)space.transform.position.y);
     }
 
     public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
@@ -203,5 +220,39 @@ public class BoardManager : MonoBehaviour {
 
     public void HighlightTile(GameObject tile) {
         SetTileColor(new Vector2Int((int)tile.transform.position.x, (int)tile.transform.position.y), whiteHighlightColor, blackHighlightColor);
+    }
+
+    public void CleanBoard() {
+        foreach (GameObject space in board) {
+            SetSpace(space, PieceType.Empty);
+        }
+    }
+
+    public string ExportBoardState() {
+        string boardState = string.Empty;
+        foreach (GameObject space in board) {
+            var piece = GetPieceFromSpace(space);
+            boardState += piece?.ID;
+            if (piece?.FirstMove == true) boardState += "*";
+            boardState += "/";
+        }
+        return boardState;
+    }
+
+    public void LoadBoardState(string boardStateData) {
+        var boardEnumerator = board.GetEnumerator();
+        var test = boardStateData.Split('/');
+        foreach (string s in boardStateData.Split('/')) {
+            if (!boardEnumerator.MoveNext()) break;
+            if (string.IsNullOrEmpty(s)) {
+                SetSpace((GameObject)boardEnumerator.Current, PieceType.Empty);
+            } else {
+                string pieceData = s;
+                bool firstMoveStatus = pieceData[^1] == '*';
+                if (firstMoveStatus) pieceData = pieceData.TrimEnd('*');
+                SetSpace((GameObject)boardEnumerator.Current, (PieceType)int.Parse(pieceData));
+                if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMoveMade();
+            }
+        }
     }
 }

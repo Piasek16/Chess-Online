@@ -24,16 +24,24 @@ public class CustomLogger : MonoBehaviour {
     }
 
     void HandleLog(string logString, string stackTrace, LogType type) {
-        TextWriter tw = new StreamWriter(logFileName, true);
         string line = "[" + type + "] : " + logString;
         myLogQueue.Enqueue(line);
-        tw.WriteLine("[" + System.DateTime.Now + "] " + line);
         if (type == LogType.Exception) {
             myLogQueue.Enqueue(stackTrace);
-            tw.WriteLine(stackTrace);
         }
         while (myLogQueue.Count > qsize)
             myLogQueue.Dequeue();
+#if !UNITY_EDITOR
+        SaveLog(logString, stackTrace, type);
+#endif
+    }
+
+    void SaveLog(string logString, string stackTrace, LogType type) {
+        TextWriter tw = new StreamWriter(logFileName, true);
+        tw.WriteLine("[" + System.DateTime.Now + "] " + logString);
+        if (type == LogType.Exception) {
+            tw.WriteLine(stackTrace);
+        }
         tw.Close();
     }
 
