@@ -11,6 +11,9 @@ public class Player : NetworkBehaviour {
     public Color32 preMoveColorWhite;
     public Color32 preMoveColorBlack;
 
+    public delegate void GhostDisposal();
+    public event GhostDisposal DisposeOfGhosts;
+
     Vector2 whitePosition = new Vector2(-2f, 1f);
     Vector2 blackPosition = new Vector2(-2f, 6f);
 
@@ -95,6 +98,7 @@ public class Player : NetworkBehaviour {
     }
 
     public void OnMyTurn() {
+        DisposeOfGhosts?.Invoke();
         if (preMoves != null && preMoves.Count > 0) {
             //Official board gets restored by game session
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);

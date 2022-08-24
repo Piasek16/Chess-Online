@@ -62,10 +62,14 @@ public class BoardManager : MonoBehaviour {
     public void OnPlayerLogin() {
         localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor;
         GenerateBoard();
-        LoadBoardState("5*/6*/////-6*/-5*/4*/6*/////-6*/-4*/3*/6*/////-6*/-3*/2*/6*/////-6*/-2*/1*/6*/////-6*/-1*/3*/6*/////-6*/-3*/4*/6*/////-6*/-4*/5*/6*/////-6*/-5*/");
-        //DefaultSetup();
-        localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
-        Debug.Log("Boardstate: " + ExportBoardState());
+        //LoadBoardState("/6*/////-6*////6///-6///5////2//-6*/-1//-2////////-3///5//-6*/-5//////////6*////-6///1/6*/////-6*//");
+        DefaultSetup();
+        //localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
+        var kings = FindObjectsOfType<King>();
+        foreach (var king in kings) {
+            if (king.ID * (localPlayerColor ? 1 : -1) > 0) localPlayerKing = king;
+        }
+        Debug.Log("MY king is on: " + localPlayerKing.Position);
     }
 
     void GenerateBoard() {
@@ -226,6 +230,10 @@ public class BoardManager : MonoBehaviour {
         foreach (GameObject space in board) {
             SetSpace(space, PieceType.Empty);
         }
+    }
+
+    public void LogBoardState() {
+        Debug.Log("Current Boardstate: " + ExportBoardState());
     }
 
     public string ExportBoardState() {

@@ -46,8 +46,8 @@ public class Pawn : Piece {
             Debug.Log("Summoning a ghost on " + behind);
             BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
             var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
-            GameSessionManager.Instance.WhitesTurn.OnValueChanged += ParentDisposeOfGhost; //Only ghost creator can destroy it
             ghost.GetComponent<Pawn>().InitGhost(Position);
+            ghost.GetComponent<Pawn>().AddGhostDispose();
             if (NetworkManager.Singleton.IsServer) {
                 Debug.Log("Sending a client summon ghost rpc");
                 GameSessionManager.Instance.SummonGhostPawnBehindClientRPC(behind, Position);
@@ -56,6 +56,10 @@ public class Pawn : Piece {
                 GameSessionManager.Instance.SummonGhostPawnBehindServerRPC(behind, Position);
             }
         }
+    }
+
+    public void AddGhostDispose() {
+        NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().DisposeOfGhosts += TriggerGhostDispose;
     }
 
     public void InitGhost(Vector2Int pawnParentLocation) {
@@ -74,11 +78,10 @@ public class Pawn : Piece {
         scheduledExecution = true;
     }
 
-    public void ParentDisposeOfGhost(bool old, bool ne) {
-        if (!GameSessionManager.Instance.MyTurn) return;
-        GameSessionManager.Instance.WhitesTurn.OnValueChanged -= ParentDisposeOfGhost;
-        (BoardManager.Instance.GetPieceFromSpace(behind) as Pawn)?.DisposeOfGhost();
-        if (NetworkManager.Singleton.IsServer) GameSessionManager.Instance.DisposeOfGhostClientRPC(behind); else GameSessionManager.Instance.DisposeOfGhostServerRPC(behind);
+    public void TriggerGhostDispose() {
+        NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().DisposeOfGhosts -= TriggerGhostDispose;
+        if (NetworkManager.Singleton.IsServer) GameSessionManager.Instance.DisposeOfGhostClientRPC(Position); else GameSessionManager.Instance.DisposeOfGhostServerRPC(Position);
+        DisposeOfGhost();
     }
 
     public void DisposeOfGhost() {
