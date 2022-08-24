@@ -226,6 +226,10 @@ public class BoardManager : MonoBehaviour {
         SetTileColor(new Vector2Int((int)tile.transform.position.x, (int)tile.transform.position.y), whiteHighlightColor, blackHighlightColor);
     }
 
+    public void HighlightTile(Vector2Int tile) {
+        SetTileColor(tile, whiteHighlightColor, blackHighlightColor);
+    }
+
     public void CleanBoard() {
         foreach (GameObject space in board) {
             SetSpace(space, PieceType.Empty);
@@ -262,5 +266,16 @@ public class BoardManager : MonoBehaviour {
                 if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMoveMade();
             }
         }
+    }
+
+    Vector2Int highlightedFrom = Vector2Int.zero;
+    Vector2Int highlightedTo = Vector2Int.zero;
+    public void HighlightMove(Vector2Int from, Vector2Int to) {
+        RestoreTileColor(highlightedFrom);
+        RestoreTileColor(highlightedTo);
+        highlightedFrom = from;
+        highlightedTo = to;
+        HighlightTile(highlightedFrom);
+        HighlightTile(highlightedTo);
     }
 }

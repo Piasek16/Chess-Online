@@ -140,6 +140,7 @@ public class GameSessionManager : NetworkBehaviour {
         NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().RestoreOfficialBoard();
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
         BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
+        BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
     }
 
     [ClientRpc]
@@ -149,6 +150,7 @@ public class GameSessionManager : NetworkBehaviour {
         NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().RestoreOfficialBoard();
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
         BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
+        BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
     }
 
     [ServerRpc(RequireOwnership = false)]

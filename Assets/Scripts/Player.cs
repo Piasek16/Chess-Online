@@ -166,6 +166,7 @@ public class Player : NetworkBehaviour {
     void RunLocalMoveLogic(Vector2Int location) {
         Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
         UpdateSecondPlayerOnMove(oldPiecePosition, location);
+        BoardManager.Instance.HighlightMove(oldPiecePosition, location);
 
         (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
         attachedPiece.FirstMoveMade();
