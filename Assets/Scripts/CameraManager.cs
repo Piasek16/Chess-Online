@@ -1,14 +1,22 @@
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour {
-    Camera main;
     float targetRight = 7.5f;
+    float targetLeft = -0.5f;
+    float horizontalSize;
     void Start() {
-        main = GetComponent<Camera>();
-        var maxRight = main.aspect * main.orthographicSize;
-        Debug.Log("target: " + targetRight);
-        Debug.Log(maxRight);
-        Debug.Log(targetRight - maxRight);
-        transform.position = new Vector3(transform.position.x + (targetRight - maxRight - transform.position.x), transform.position.y, transform.position.z);
+        Camera main = GetComponent<Camera>();
+        horizontalSize = main.aspect * main.orthographicSize;
+        AdjustPositionForWhitePlayer(); //default adjust
+    }
+
+    public void AdjustPositionForWhitePlayer() {
+        transform.position = new Vector3(transform.position.x + (targetRight - (transform.position.x + horizontalSize)), transform.position.y, transform.position.z);
+    }
+
+    public void AdjustPositionForBlackPlayer() {
+        transform.SetPositionAndRotation(
+            new Vector3(transform.position.x + (targetLeft - (transform.position.x - horizontalSize)), transform.position.y, transform.position.z), 
+            Quaternion.Euler(0, 0, 180));
     }
 }

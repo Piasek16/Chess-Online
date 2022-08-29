@@ -36,10 +36,8 @@ public class Player : NetworkBehaviour {
 
         if (IsOwner) {
             if (!playerColor) {
+                Camera.main.GetComponent<CameraManager>().AdjustPositionForBlackPlayer();
                 Quaternion rotated = Quaternion.Euler(0, 0, 180);
-                Camera.main.transform.SetPositionAndRotation(
-                    new Vector3(6.61111f, Camera.main.transform.position.y, Camera.main.transform.position.z),
-                    rotated);
                 transform.rotation = rotated;
                 foreach (Player p in FindObjectsOfType<Player>()) {
                     p.transform.position = new Vector2(p.transform.position.x + 11, p.transform.position.y);
