@@ -1,6 +1,8 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.Collections;
 using System;
 
 public class BoardManager : MonoBehaviour {
@@ -63,7 +65,8 @@ public class BoardManager : MonoBehaviour {
         localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor;
         GenerateBoard();
         //LoadBoardState("/6*/////-6*////6///-6///5////2//-6*/-1//-2////////-3///5//-6*/-5//////////6*////-6///1/6*/////-6*//");
-        DefaultSetup();
+        //DefaultSetup();
+        LoadStateFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0");
         //localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
         var kings = FindObjectsOfType<King>();
         foreach (var king in kings) {
@@ -277,5 +280,119 @@ public class BoardManager : MonoBehaviour {
         highlightedTo = to;
         HighlightTile(highlightedFrom);
         HighlightTile(highlightedTo);
+    }
+
+    Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
+        { 'K', PieceType.WKing },
+        { 'Q', PieceType.WQueen },
+        { 'B', PieceType.WBishop },
+        { 'N', PieceType.WKnight },
+        { 'R', PieceType.WRook },
+        { 'P', PieceType.WPawn },
+        { 'k', PieceType.BKing },
+        { 'q', PieceType.BQueen },
+        { 'b', PieceType.BBishop },
+        { 'n', PieceType.BKnight },
+        { 'r', PieceType.BRook },
+        { 'p', PieceType.BPawn },
+    };
+
+    public void LoadStateFromFen(FixedString128Bytes fen) {
+        CleanBoard();
+        var fenParameters = fen.ToString().Split(' ');
+        //Board state
+        int file = 0, rank = 7;
+        foreach (char c in fenParameters[0]) {
+            if (c == '/') {
+                file = 0;
+                rank--;
+            } else {
+                if (char.IsDigit(c)) {
+                    file += (int)char.GetNumericValue(c);
+                } else {
+                    SetSpace(file, rank, fenPieces[c]);
+                    file++;
+                }
+            }
+        }
+
+        //Hookup below code to game session manager after a rewrite
+
+        //Active color
+        bool whitesTurn = fenParameters[1] == "w";
+        //Castling rights
+        List<Rook> rooks = new List<Rook>(FindObjectsOfType<Rook>());
+        if (fenParameters[2] != "-") {
+            foreach (char c in fenParameters[2]) {
+                switch (c) {
+                    case 'K': {
+                            var rook = GetPieceFromSpace(7, 0);
+                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
+                            break;
+                        }
+                    case 'k': {
+                            var rook = GetPieceFromSpace(7, 7);
+                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
+                            break;
+                        }
+                    case 'Q': {
+                            var rook = GetPieceFromSpace(0, 0);
+                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
+                            break;
+                        }
+                    case 'q': {
+                            var rook = GetPieceFromSpace(0, 7);
+                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
+                            break;
+                        }
+                }
+            }
+        }
+        Debug.Log("Calling first move on " + rooks.Count + " rooks!");
+        rooks?.ForEach(rook => rook.FirstMoveMade());
+        //En pessant
+        if (fenParameters[3] != "-") {
+            //GameSessionManager.Instance.SpawnGhostOnPosition and find its parent
+        }
+        //All moves
+        var movesMade = int.Parse(fenParameters[4]);
+        var turnsCompleted = int.Parse(fenParameters[5]);
+    }
+
+    [Obsolete("Method not implemented yet.", true)]
+    public FixedString128Bytes ExportFenState() {
+        FixedString128Bytes fenState = string.Empty;
+        var reversedFenPieces = fenPieces.ToDictionary(piece => piece.Value, piece => piece.Key);
+        for(int rank = 7; rank >= 0; rank--) {
+            int emptySpaces = 0;
+            for (int file = 0; file < 8; file++) {
+                var piece = GetPieceFromSpace(file, rank);
+                if (piece == null) {
+                    emptySpaces++;
+                } else {
+                    if (emptySpaces > 0) fenState += emptySpaces.ToString();
+                    emptySpaces = 0;
+                    fenState += reversedFenPieces[(PieceType)piece.ID].ToString();
+                }
+            }
+            if (rank != 0) fenState += "/";
+        }
+        fenState += " ";
+        fenState += GameSessionManager.Instance.WhitesTurn.Value ? "w" : "b";
+        fenState += " ";
+        //Check castling
+        fenState += "-";
+        fenState += " ";
+        //Check ghosts
+        fenState += "-";
+        fenState += " ";
+        //Add moves from Game session manager (when tracked)
+        fenState += "?";
+        fenState += " ";
+        //Add turnsCompleted from Game session manager (when tracked)
+        fenState += "?";
+        Debug.Log("Exported FEN state:");
+        Debug.Log(fenState);
+        return fenState;
     }
 }
