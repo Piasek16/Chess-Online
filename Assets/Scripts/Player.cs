@@ -7,7 +7,7 @@ using TMPro;
 public class Player : NetworkBehaviour {
     public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-    public bool playerColor = false;
+    public bool PlayerColor = false;
     public Color32 preMoveColorWhite;
     public Color32 preMoveColorBlack;
 
@@ -16,6 +16,10 @@ public class Player : NetworkBehaviour {
 
     Vector2 whitePosition = new Vector2(-2f, 1f);
     Vector2 blackPosition = new Vector2(-2f, 6f);
+
+    public void Setup(ulong whitePlayerID, ulong blackPlayerID) {
+        PlayerColor = (whitePlayerID == NetworkManager.LocalClientId);
+    }
 
     public override void OnNetworkSpawn() {
         usernameText = GetComponentInChildren<TMP_Text>();
@@ -27,28 +31,28 @@ public class Player : NetworkBehaviour {
             UpdatePlayerObjectName(default, default);
         }
 
-        playerColor = IsOwnedByServer;
-        if (playerColor) {
+        PlayerColor = IsOwnedByServer;
+        if (PlayerColor) {
             transform.position = whitePosition;
         } else {
             transform.position = blackPosition;
         }
 
         if (IsOwner) {
-            if (!playerColor) {
+            if (!PlayerColor) {
                 Camera.main.GetComponent<CameraManager>().AdjustPositionForBlackPlayer();
                 Quaternion rotated = Quaternion.Euler(0, 0, 180);
                 transform.rotation = rotated;
                 foreach (Player p in FindObjectsOfType<Player>()) {
                     p.transform.position = new Vector2(p.transform.position.x + 11, p.transform.position.y);
-                    if (p.playerColor == true) p.transform.rotation = rotated;
+                    if (p.PlayerColor == true) p.transform.rotation = rotated;
                 }
             }
         }
 
         if (IsOwner) BoardManager.Instance.OnPlayerLogin();
 
-        if (IsLocalPlayer && !IsOwnedByServer) GameSessionManager.Instance.StartGameServerRPC();
+        //if (IsLocalPlayer && !IsOwnedByServer) GameSessionManager.Instance.StartGameServerRPC();
     }
 
     void UpdatePlayerObjectName(FixedString128Bytes previous, FixedString128Bytes newValue) {
@@ -100,7 +104,7 @@ public class Player : NetworkBehaviour {
         if (preMoves != null && preMoves.Count > 0) {
             //Official board gets restored by game session
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
-            if (pieceToMove != null && pieceToMove.ID * (playerColor ? 1 : -1) > 0 && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
+            if (pieceToMove != null && pieceToMove.ID * (PlayerColor ? 1 : -1) > 0 && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
                 ExecutePreMove();
                 RestorePremoves();
                 return;
@@ -115,7 +119,7 @@ public class Player : NetworkBehaviour {
 
     void AttachPiece(Piece piece) {
         if (piece == null) return;
-        if (piece.ID > 0 && !playerColor || piece.ID < 0 && playerColor) return;
+        if (piece.ID > 0 && !PlayerColor || piece.ID < 0 && PlayerColor) return;
         piece.HighlightPossibleMoves(out oldPossibleMoves);
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
@@ -205,10 +209,10 @@ public class Player : NetworkBehaviour {
     }
 
     void ProceedPromotion() {
-        if (Input.GetKeyDown(KeyCode.Alpha1)) PromotePawnTo(playerColor ? BoardManager.PieceType.WQueen : BoardManager.PieceType.BQueen);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) PromotePawnTo(playerColor ? BoardManager.PieceType.WRook : BoardManager.PieceType.BRook);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) PromotePawnTo(playerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop);
-        if (Input.GetKeyDown(KeyCode.Alpha4)) PromotePawnTo(playerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight);
+        if (Input.GetKeyDown(KeyCode.Alpha1)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WQueen : BoardManager.PieceType.BQueen);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WRook : BoardManager.PieceType.BRook);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight);
     }
 
     void PromotePawnTo(BoardManager.PieceType p) {
@@ -335,7 +339,7 @@ public class Player : NetworkBehaviour {
         if (preMoves != null) {
             preMoves.Reverse();
             foreach (PreMove preMove in preMoves) {
-                if (BoardManager.Instance.GetPieceFromSpace(preMove.to).ID * (playerColor ? 1 : -1) < 0) continue;
+                if (BoardManager.Instance.GetPieceFromSpace(preMove.to).ID * (PlayerColor ? 1 : -1) < 0) continue;
                 BoardManager.Instance.MovePiece(preMove.to, preMove.from);
                 BoardManager.Instance.RestoreTileColor(preMove.to);
                 Debug.Log("Restoring a move to " + preMove.to + " from " + preMove.from);
@@ -349,7 +353,7 @@ public class Player : NetworkBehaviour {
         if (preMoves != null) {
             for (int i = 0; i < preMoves.Count; i++) {
                 var preMove = preMoves[i];
-                if (BoardManager.Instance.GetPieceFromSpace(preMove.from).ID * (playerColor ? 1 : -1) < 0) continue;
+                if (BoardManager.Instance.GetPieceFromSpace(preMove.from).ID * (PlayerColor ? 1 : -1) < 0) continue;
                 var cappedPiece = BoardManager.Instance.GetPieceFromSpace(preMove.to);
                 if (cappedPiece != null) preMove.capturedPiece = cappedPiece;
                 if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = capturedFromPremovesContainer.transform;

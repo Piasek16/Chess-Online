@@ -7,35 +7,59 @@ public class GameSessionManager : NetworkBehaviour {
         if (Instance != null && Instance != this) Destroy(this); else Instance = this;
     }
 
-    NetworkVariable<ulong> Player1 = new NetworkVariable<ulong>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    NetworkVariable<ulong> Player2 = new NetworkVariable<ulong>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();
+    NetworkVariable<ulong> BlackPlayerID = new NetworkVariable<ulong>();
 
-    public NetworkVariable<bool> WhitesTurn = new NetworkVariable<bool>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> WhitePlayersTurn = new NetworkVariable<bool>(true);
     public bool MyTurn = false;
     public bool GameStarted = false;
+    public Player localPlayer = null;
 
-    public void StartGame() {
-        Player1.Value = NetworkManager.Singleton.LocalClientId;
-        Player2.Value = NetworkManager.Singleton.ConnectedClientsIds[1];
-        WhitesTurn.Value = true;
+    [SerializeField] private GameObject ClassicPlayerObject;
+
+    public override void OnNetworkSpawn() {
+        if (!IsServer) return;
+        InitializeGameServer();
+        InitializeGameClientRPC();
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    public void StartGameServerRPC() {
-        StartGame();
+    private void InitializeGameServer() {
+        var connectedPlayers = NetworkManager.Singleton.ConnectedClientsIds;
+        WhitePlayerID.Value = (ulong)Random.Range(0, connectedPlayers.Count);
+        foreach (ulong id in connectedPlayers) {
+            if (id != WhitePlayerID.Value) BlackPlayerID.Value = id;
+        }
+        Debug.Log("Server initialized game with following parameters:");
+        Debug.Log("White player id: " + WhitePlayerID.Value);
+        Debug.Log("Black player id: " + BlackPlayerID.Value);
+        if (IsClient) {
+            SpawnPlayerObject(NetworkManager.Singleton.LocalClientId);
+            Debug.Log("Game initialized as host therefore spawned a player object");
+        }
     }
 
-    void Start() {
-        Player1.OnValueChanged += PrintValues;
-        Player2.OnValueChanged += PrintValues;
-        WhitesTurn.OnValueChanged += SetMyTurn;
-        WhitesTurn.OnValueChanged += CheckForChecks;
-
-        //GetComponent<NetworkObject>().NetworkManager = NetworkManager.Singleton;
-        //network manager is null, have to move game session manager to dont destroy? or instantiate it dynamically
-
-        NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
+    [ClientRpc]
+    public void InitializeGameClientRPC() {
+        localPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>();
+        localPlayer.Setup(WhitePlayerID.Value, BlackPlayerID.Value);
+        WhitePlayersTurn.OnValueChanged += InvokeTurnChangeLogic;
+        GameStarted = true;
     }
+
+    private void InvokeTurnChangeLogic(bool oldTurn, bool newTurn) {
+        SetMyTurn();
+        if (MyTurn) {
+            OnMyTurn();
+            CheckForChecks();
+        }
+    }
+
+    private void SetMyTurn() {
+        if (localPlayer.PlayerColor == true) MyTurn = WhitePlayersTurn.Value; else MyTurn = !WhitePlayersTurn.Value;
+        if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
+    }
+
+    //Rewrite paused
 
     private void Singleton_OnClientConnectedCallback(ulong clientID) {
         Debug.Log("on client connected callback uid: " + clientID);
@@ -43,29 +67,16 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private void SpawnPlayerObject(ulong clientID) {
-        Debug.Log("excecuting rpc spawn");
-        var player = Instantiate(LoginSessionManager.Instance.playerObject);
-        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientID);
+        var player = Instantiate(ClassicPlayerObject);
+        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientID, true);
+        Debug.Log("Spawned classic mode player object for clientID: " + clientID);
     }
 
-    public void PrintValues(ulong old, ulong ne) {
-        Debug.Log("Game Started by IDs updated");
-        Debug.Log("Player1: " + Player1.Value);
-        Debug.Log("Player2: " + Player2.Value);
-    }
-
-    private void SetMyTurn(bool old, bool nef) {
-        GameStarted = true;
-        if (IsServer) MyTurn = WhitesTurn.Value; else MyTurn = !WhitesTurn.Value;
-        if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
-        if (MyTurn) OnMyTurn();
-    }
-
-    public void AdvanceTurn() {
+    /*public void AdvanceTurn() {
         WhitesTurn.Value = !WhitesTurn.Value;
-    }
+    }*/
 
-    public void CheckForChecks(bool old, bool ne) {
+    public void CheckForChecks() {
         if (MoveManager.Instance.IsKingInCheck()) Debug.Log("My king is in check!");
     }
 
@@ -75,7 +86,7 @@ public class GameSessionManager : NetworkBehaviour {
         foreach (var space in gameBoard) {
             if (space.transform.childCount > 0) {
                 var piece = space.transform.GetChild(0).GetComponent<Piece>();
-                if (piece.ID * (NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor ? 1 : -1) > 0)
+                if (piece.ID * (NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor ? 1 : -1) > 0)
                     legalMoves += piece.PossibleMoves.Count;
             }
         }
@@ -83,7 +94,7 @@ public class GameSessionManager : NetworkBehaviour {
         if (MoveManager.Instance.IsKingInCheck() && legalMoves == 0) {
             Debug.Log("Game end - opponent wins!");
             Debug.Log("You lost ;)");
-            if (IsServer) EndGameClientRPC(true, Player2.Value); else EndGameServerRPC(true, Player1.Value);
+            if (IsServer) EndGameClientRPC(true, BlackPlayerID.Value); else EndGameServerRPC(true, WhitePlayerID.Value);
             //Display canvas
             return;
         }
@@ -99,7 +110,7 @@ public class GameSessionManager : NetworkBehaviour {
     [ServerRpc(RequireOwnership = false)]
     public void EndGameServerRPC(bool winnerExists, ulong winnerID) {
         if (winnerExists) {
-            if (winnerID == Player1.Value) {
+            if (winnerID == WhitePlayerID.Value) {
                 //Display winner canvas
                 Debug.Log("Game end - you win!");
             } else {
@@ -116,7 +127,7 @@ public class GameSessionManager : NetworkBehaviour {
     public void EndGameClientRPC(bool winnerExists, ulong winnerID) {
         if (IsServer) return;
         if (winnerExists) {
-            if (winnerID == Player2.Value) {
+            if (winnerID == BlackPlayerID.Value) {
                 //Display winner canvas
                 Debug.Log("Game end - you win!");
             } else {
@@ -131,7 +142,7 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ServerRpc(RequireOwnership = false)]
     public void AdvanceTurnServerRPC() {
-        AdvanceTurn();
+        //AdvanceTurn();
     }
 
     [ServerRpc(RequireOwnership = false)]

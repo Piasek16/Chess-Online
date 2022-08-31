@@ -1267,6 +1267,11 @@ MonoBehaviour:
       SourcePrefabToOverride: {fileID: 2123819506533109091, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
       SourceHashToOverride: 0
       OverridingTargetPrefab: {fileID: 0}
+    - Override: 0
+      Prefab: {fileID: 4810073209933628283, guid: 1f3924d7fdcf53c44a1244bb2aa46158, type: 3}
+      SourcePrefabToOverride: {fileID: 2123819506533109091, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
+      SourceHashToOverride: 0
+      OverridingTargetPrefab: {fileID: 0}
     TickRate: 30
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 0
@@ -1992,9 +1997,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6e69f48caeb5e549b79518908040758, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerObject: {fileID: -915683989885005896, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
   usernameCanvas: {fileID: 958915964}
   connectionCanvas: {fileID: 7913717}
+  lobbyManager: {fileID: 4810073209933628230, guid: 1f3924d7fdcf53c44a1244bb2aa46158, type: 3}
 --- !u!4 &1732940504
 Transform:
   m_ObjectHideFlags: 0

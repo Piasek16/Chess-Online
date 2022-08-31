@@ -430,7 +430,7 @@ MonoBehaviour:
         byte0123: 0
         byte0124: 0
         byte0125: 0
-  playerColor: 0
+  PlayerColor: 0
   preMoveColorWhite:
     serializedVersion: 2
     rgba: 6645213

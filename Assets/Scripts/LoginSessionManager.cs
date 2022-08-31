@@ -12,30 +12,10 @@ public class LoginSessionManager : MonoBehaviour {
     public string Username { get; private set; } = "Chess Player";
     public string IP { get; private set; } = "127.0.0.1";
 
-    public Player playerObject;
     [SerializeField] private Canvas usernameCanvas;
     [SerializeField] private Canvas connectionCanvas;
+    [SerializeField] private LobbyManager lobbyManager;
     private UNetTransport uNetTransport;
-
-    void Start() {
-        //SceneManager.sceneLoaded += OnSceneLoaded;
-
-        //Subscribed later in start host
-
-        uNetTransport = NetworkManager.Singleton.GetComponent<UNetTransport>();
-        uNetTransport.ConnectAddress = "127.0.0.1"; //Temporary local address
-        uNetTransport.ConnectPort = 25565; //Temporary port
-        uNetTransport.ServerListenPort = 25565; //Temporary port
-    }
-
-    private void SceneManager_OnLoadComplete(ulong clientId, string sceneName, LoadSceneMode loadSceneMode) {
-        if (clientId != NetworkManager.Singleton.LocalClientId) return;
-        Debug.Log("Loaded scene name " + sceneName);
-        if (NetworkManager.Singleton.IsServer) {
-            var player = Instantiate(playerObject);
-            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
-        }
-    }
 
     public void PassUsername(string username) {
         Username = username;
@@ -47,30 +27,55 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     public void PassIP(string ip) {
-        uNetTransport.ConnectAddress = ip;
+        IP = ip;
+        uNetTransport.ConnectAddress = IP;
     }
 
     public void ConnectClient() {
-        if (NetworkManager.Singleton.StartClient()) Debug.Log("Client started successfully!");
-            //NetworkManager.Singleton.SceneManager.LoadScene("ClassicMode", LoadSceneMode.Single);
-        //SceneManager.LoadScene(1);
+        if (NetworkManager.Singleton.StartClient()) {
+            Debug.Log("Client started successfully!");
+            Debug.Log("Attempting to connect with " + IP);
+        }
+        NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
+        NetworkManager.Singleton.OnClientDisconnectCallback += Singleton_OnClientDisconnectCallback;
+    }
+
+    private void Singleton_OnClientConnectedCallback(ulong obj) {
+        Debug.Log("Client successfully connected!");
+        connectionCanvas.gameObject.SetActive(false);
+    }
+
+    private void Singleton_OnClientDisconnectCallback(ulong obj) {
+        Debug.Log("Client disconnected.");
+        Debug.Log("Loading starting scene...");
+        SceneManager.LoadScene(0);
     }
 
     public void StartHost() {
         if (NetworkManager.Singleton.StartHost()) {
-            NetworkManager.Singleton.SceneManager.OnLoadComplete += SceneManager_OnLoadComplete;
-            NetworkManager.Singleton.SceneManager.LoadScene("ClassicMode", LoadSceneMode.Single);
+            Debug.Log("Host started successfully! \nAwaiting connections...");
+            connectionCanvas.gameObject.SetActive(false);
+            var lobby = Instantiate(lobbyManager);
+
+            //var test = lobby.GetComponent<NetworkObject>();
+            //Debug.Log("dwa");
+
+
+            //test.Spawn();
+
+
+            Debug.Log("after");
+
+
+            lobby.GetComponent<NetworkObject>().Spawn();
+            Debug.Log("Lobby created!");
         }
-        //SceneManager.LoadScene(1);
     }
 
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
-        if (scene.buildIndex == 1) {
-            Debug.Log("Loaded scene name " + scene.name);
-            if (NetworkManager.Singleton.IsServer) {
-                var player = Instantiate(playerObject);
-                player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
-            }
-        }
+    void Start() {
+        uNetTransport = NetworkManager.Singleton.GetComponent<UNetTransport>();
+        uNetTransport.ConnectAddress = "192.168.1.39"; //Temporary local address
+        uNetTransport.ConnectPort = 25565; //Temporary port
+        uNetTransport.ServerListenPort = 25565; //Temporary port
     }
 }

@@ -62,7 +62,7 @@ public class BoardManager : MonoBehaviour {
     }*/
 
     public void OnPlayerLogin() {
-        localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().playerColor;
+        localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor;
         GenerateBoard();
         //LoadBoardState("/6*/////-6*////6///-6///5////2//-6*/-1//-2////////-3///5//-6*/-5//////////6*////-6///1/6*/////-6*//");
         //DefaultSetup();
@@ -378,7 +378,7 @@ public class BoardManager : MonoBehaviour {
             if (rank != 0) fenState += "/";
         }
         fenState += " ";
-        fenState += GameSessionManager.Instance.WhitesTurn.Value ? "w" : "b";
+        fenState += GameSessionManager.Instance.WhitePlayersTurn.Value ? "w" : "b";
         fenState += " ";
         //Check castling
         fenState += "-";
