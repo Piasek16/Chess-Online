@@ -3,6 +3,10 @@ using System.Collections;
 using System.IO;
 
 public class CustomLogger : MonoBehaviour {
+    public static CustomLogger Instance { get; private set; }
+    void Awake() {
+        if (Instance != null && Instance != this) Destroy(gameObject); else { Instance = this; DontDestroyOnLoad(gameObject); };
+    }
 
     uint qsize = 23;  // number of messages to keep
     Queue myLogQueue = new Queue();
@@ -10,7 +14,6 @@ public class CustomLogger : MonoBehaviour {
     string logFileName;
 
     void Start() {
-        DontDestroyOnLoad(gameObject);
         logFileName = Application.dataPath + "/ChessOnlineLog.txt";
         Debug.Log("Started up logging.");
     }

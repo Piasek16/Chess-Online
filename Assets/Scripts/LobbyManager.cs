@@ -3,6 +3,7 @@ using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class LobbyManager : NetworkBehaviour {
 
@@ -13,6 +14,8 @@ public class LobbyManager : NetworkBehaviour {
     private enum GameType { Classic, Upgraded, Rapids };
     private GameType selectedGameType;
     private string localPlayerName;
+    private Button readyButton;
+    private bool playerReady = false;
 
     public override void OnNetworkSpawn() {
         if (IsServer) {
@@ -26,35 +29,40 @@ public class LobbyManager : NetworkBehaviour {
         lobbyCanvas = transform.GetChild(0).GetComponent<Canvas>();
         lobbyTextField = lobbyCanvas.transform.GetChild(0).GetComponent<TMP_Text>();
         localPlayerName = FindObjectOfType<LoginSessionManager>().Username;
+        readyButton = lobbyCanvas.transform.GetChild(4).GetComponent<Button>();
+        readyButton.onClick.AddListener(ReadyButtonClicked);
         RegisterPlayerInLobbyServerRPC(localPlayerName);
-        GenerateAndUpdatePlayersLobbyText();
+        if (IsServer) GenerateAndUpdatePlayersLobbyText();
     }
 
     private void Singleton_OnClientConnectedCallback(ulong obj) {
         if (!IsServer) return; //Technically impossible
         readyStatus.Add(obj, false);
         GenerateAndUpdatePlayersLobbyText();
+        Debug.Log("Player " + obj + " connected!");
     }
 
     private void Singleton_OnClientDisconnectCallback(ulong obj) {
         if (!IsServer) return; //Technically impossible
         readyStatus.Remove(obj);
+        playerNames.Remove(obj);
         GenerateAndUpdatePlayersLobbyText();
+        Debug.Log("Player " + obj + " disconnected.");
     }
 
     [ServerRpc(RequireOwnership = false)]
     private void RegisterPlayerInLobbyServerRPC(string username, ServerRpcParams serverRpcParams = default) {
-        Debug.Log("Registering player id " + serverRpcParams.Receive.SenderClientId + "in lobby.");
+        Debug.Log("Registering player id " + serverRpcParams.Receive.SenderClientId + " in lobby.");
         playerNames.Add(serverRpcParams.Receive.SenderClientId, username);
     }
 
     private void GenerateAndUpdatePlayersLobbyText() {
         string lobbyText;
-        lobbyText = "Selected game mode: " + selectedGameType.ToString() + "\n";
+        lobbyText = "Selected game mode: <color=orange>" + selectedGameType.ToString() + "</color>\n";
         lobbyText += "Players in lobby: \n";
-        foreach (var playerClient in NetworkManager.Singleton.ConnectedClientsList) {
-            lobbyText += readyStatus[playerClient.ClientId] ? "<color=green>" : "<color=red>";
-            lobbyText += playerNames[playerClient.ClientId] + "\n";
+        foreach (var playerClient in readyStatus.Keys) {
+            lobbyText += readyStatus[playerClient] ? "<color=green>" : "<color=red>";
+            lobbyText += playerNames[playerClient] + "\n";
         }
         UpdatePlayersLobbyTextClientRPC(lobbyText);
     }
@@ -68,37 +76,53 @@ public class LobbyManager : NetworkBehaviour {
         if (!IsOwner) return;
         foreach (var status in readyStatus) {
             if (status.Value == false) {
-                //HideStartGameButton();
+                HideStartGameButton();
                 return;
             }
         }
-        //ShowStartGameButton();
+        ShowStartGameButton();
     }
 
     private void ShowStartGameButton() {
-        transform.GetChild(0).gameObject.SetActive(true);
+        lobbyCanvas.transform.GetChild(5).gameObject.SetActive(true);
     }
 
     private void HideStartGameButton() {
-        transform.GetChild(0).gameObject.SetActive(false);
+        lobbyCanvas.transform.GetChild(5).gameObject.SetActive(false);
+    }
+
+    private void ReadyButtonClicked() {
+        playerReady = !playerReady;
+        var colors = readyButton.colors;
+        colors.normalColor = playerReady ? Color.green : Color.white;
+        colors.selectedColor = colors.normalColor;
+        readyButton.colors = colors;
+        SetReadyStatusServerRPC(playerReady);
     }
 
     [ServerRpc(RequireOwnership = false)]
     private void SetReadyStatusServerRPC(bool status, ServerRpcParams param = default) {
         readyStatus[param.Receive.SenderClientId] = status;
-        Debug.Log("Ready status changed for " + param.Receive.SenderClientId + " to " + status);
+        Debug.Log("Ready status changed for client id " + param.Receive.SenderClientId + " to " + (status ? "ready" : "not ready"));
+        GenerateAndUpdatePlayersLobbyText();
     }
 
     public void SetGameTypeClassic() {
+        if (!IsOwner) return;
         selectedGameType = GameType.Classic;
+        GenerateAndUpdatePlayersLobbyText();
     }
 
     public void SetGameTypeUpgraded() {
+        if (!IsOwner) return;
         selectedGameType = GameType.Upgraded;
+        GenerateAndUpdatePlayersLobbyText();
     }
 
     public void SetGameTypeRapids() {
+        if (!IsOwner) return;
         selectedGameType = GameType.Rapids;
+        GenerateAndUpdatePlayersLobbyText();
     }
 
     public void StartGame() {

@@ -5,7 +5,7 @@ public class MoveManager : MonoBehaviour {
 
     public static MoveManager Instance { get; private set; }
     void Awake() {
-        if (Instance != null && Instance != this) Destroy(this); else Instance = this;
+        if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
     }
 
     /// <summary>

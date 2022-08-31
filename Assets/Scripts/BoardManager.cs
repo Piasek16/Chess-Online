@@ -39,7 +39,7 @@ public class BoardManager : MonoBehaviour {
 
     public static BoardManager Instance { get; private set; }
     void Awake() {
-        if (Instance != null && Instance != this) Destroy(this); else Instance = this;
+        if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
         defaultShader = Shader.Find("Unlit/Color");
         pieces = new Dictionary<int, Piece>();
         foreach (Piece piece in piecesPrefabs) {

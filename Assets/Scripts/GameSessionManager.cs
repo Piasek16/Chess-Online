@@ -4,7 +4,7 @@ using UnityEngine;
 public class GameSessionManager : NetworkBehaviour {
     public static GameSessionManager Instance { get; private set; }
     void Awake() {
-        if (Instance != null && Instance != this) Destroy(this); else Instance = this;
+        if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
     }
 
     NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();

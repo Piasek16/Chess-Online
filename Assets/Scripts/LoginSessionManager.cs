@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 public class LoginSessionManager : MonoBehaviour {
     public static LoginSessionManager Instance { get; private set; }
     void Awake() {
-        if (Instance != null && Instance != this) Destroy(this); else { Instance = this; DontDestroyOnLoad(gameObject); };
+        if (Instance != null && Instance != this) Destroy(gameObject); else { Instance = this; DontDestroyOnLoad(gameObject); };
     }
 
     public string Username { get; private set; } = "Chess Player";
@@ -14,8 +14,14 @@ public class LoginSessionManager : MonoBehaviour {
 
     [SerializeField] private Canvas usernameCanvas;
     [SerializeField] private Canvas connectionCanvas;
-    [SerializeField] private LobbyManager lobbyManager;
+    [SerializeField] private LobbyManager lobbyManagerPrefab;
     private UNetTransport uNetTransport;
+
+    void Start() {
+        uNetTransport = NetworkManager.Singleton.GetComponent<UNetTransport>();
+        uNetTransport.ConnectPort = 25565; //Temporary port
+        uNetTransport.ServerListenPort = 25565; //Temporary port
+    }
 
     public void PassUsername(string username) {
         Username = username;
@@ -46,8 +52,8 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     private void Singleton_OnClientDisconnectCallback(ulong obj) {
-        Debug.Log("Client disconnected.");
-        Debug.Log("Loading starting scene...");
+        Debug.Log("Client disconnected. (Or connection attempt timed out)");
+        Debug.Log("Loading starting scene... (this will end with a bricked game because of manual references)");
         SceneManager.LoadScene(0);
     }
 
@@ -55,27 +61,9 @@ public class LoginSessionManager : MonoBehaviour {
         if (NetworkManager.Singleton.StartHost()) {
             Debug.Log("Host started successfully! \nAwaiting connections...");
             connectionCanvas.gameObject.SetActive(false);
-            var lobby = Instantiate(lobbyManager);
-
-            //var test = lobby.GetComponent<NetworkObject>();
-            //Debug.Log("dwa");
-
-
-            //test.Spawn();
-
-
-            Debug.Log("after");
-
-
+            var lobby = Instantiate(lobbyManagerPrefab);
             lobby.GetComponent<NetworkObject>().Spawn();
             Debug.Log("Lobby created!");
         }
-    }
-
-    void Start() {
-        uNetTransport = NetworkManager.Singleton.GetComponent<UNetTransport>();
-        uNetTransport.ConnectAddress = "192.168.1.39"; //Temporary local address
-        uNetTransport.ConnectPort = 25565; //Temporary port
-        uNetTransport.ServerListenPort = 25565; //Temporary port
     }
 }
