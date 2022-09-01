@@ -53,8 +53,6 @@ public class LoginSessionManager : MonoBehaviour {
 
     private void Singleton_OnClientDisconnectCallback(ulong obj) {
         Debug.Log("Client disconnected. (Or connection attempt timed out)");
-        Debug.Log("Loading starting scene... (this will end with a bricked game because of manual references)");
-        SceneManager.LoadScene(0);
     }
 
     public void StartHost() {

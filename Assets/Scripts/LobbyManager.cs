@@ -95,6 +95,7 @@ public class LobbyManager : NetworkBehaviour {
         playerReady = !playerReady;
         var colors = readyButton.colors;
         colors.normalColor = playerReady ? Color.green : Color.white;
+        colors.highlightedColor = colors.normalColor;
         colors.selectedColor = colors.normalColor;
         readyButton.colors = colors;
         SetReadyStatusServerRPC(playerReady);
