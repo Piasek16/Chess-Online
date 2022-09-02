@@ -27,7 +27,7 @@ public class GameSessionManager : NetworkBehaviour {
         var connectedPlayers = NetworkManager.Singleton.ConnectedClientsIds;
         WhitePlayerID.Value = (ulong)Random.Range(0, connectedPlayers.Count);
         foreach (ulong id in connectedPlayers) {
-            if (id != WhitePlayerID.Value) BlackPlayerID.Value = id;
+            if (id != WhitePlayerID.Value) { BlackPlayerID.Value = id; break; }
         }
         Debug.Log("Server initialized game with following parameters:");
         Debug.Log("White player id: " + WhitePlayerID.Value);

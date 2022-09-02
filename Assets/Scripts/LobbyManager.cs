@@ -16,6 +16,8 @@ public class LobbyManager : NetworkBehaviour {
     private string localPlayerName;
     private Button readyButton;
     private bool playerReady = false;
+    private string relayCode = null;
+    private string hostIP = null;
 
     public override void OnNetworkSpawn() {
         if (IsServer) {
@@ -25,6 +27,7 @@ public class LobbyManager : NetworkBehaviour {
             };
             NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
             NetworkManager.Singleton.OnClientDisconnectCallback += Singleton_OnClientDisconnectCallback;
+            if (LoginSessionManager.Instance.RelayCode != null) relayCode = LoginSessionManager.Instance.RelayCode; else hostIP = LoginSessionManager.Instance.IP;
         }
         lobbyCanvas = transform.GetChild(0).GetComponent<Canvas>();
         lobbyTextField = lobbyCanvas.transform.GetChild(0).GetComponent<TMP_Text>();
@@ -59,6 +62,7 @@ public class LobbyManager : NetworkBehaviour {
     private void GenerateAndUpdatePlayersLobbyText() {
         string lobbyText;
         lobbyText = "Selected game mode: <color=orange>" + selectedGameType.ToString() + "</color>\n";
+        lobbyText += "Lobby Code: <color=orange>" + (relayCode ?? hostIP) + "</color>\n";
         lobbyText += "Players in lobby: \n";
         foreach (var playerClient in readyStatus.Keys) {
             lobbyText += readyStatus[playerClient] ? "<color=green>" : "<color=red>";
