@@ -35,6 +35,7 @@ public class LobbyManager : NetworkBehaviour {
         readyButton = lobbyCanvas.transform.GetChild(4).GetComponent<Button>();
         readyButton.onClick.AddListener(ReadyButtonClicked);
         RegisterPlayerInLobbyServerRPC(localPlayerName);
+        LoginSessionManager.Instance.LobbyManager = this;
         if (IsServer) GenerateAndUpdatePlayersLobbyText();
     }
 
@@ -62,7 +63,7 @@ public class LobbyManager : NetworkBehaviour {
     private void GenerateAndUpdatePlayersLobbyText() {
         string lobbyText;
         lobbyText = "Selected game mode: <color=orange>" + selectedGameType.ToString() + "</color>\n";
-        lobbyText += "Lobby Code: <color=orange>" + (relayCode ?? hostIP) + "</color>\n";
+        lobbyText += "Lobby " + (relayCode != null ? "Code" : "IP") + ": <color=orange>" + (relayCode ?? hostIP) + "</color>\n";
         lobbyText += "Players in lobby: \n";
         foreach (var playerClient in readyStatus.Keys) {
             lobbyText += readyStatus[playerClient] ? "<color=green>" : "<color=red>";
@@ -148,5 +149,10 @@ public class LobbyManager : NetworkBehaviour {
                     break;
                 }
         }
+    }
+
+    public void QuitLobby() {
+        LoginSessionManager.Instance.PlayerDisconnected();
+        NetworkManager.Singleton.Shutdown();
     }
 }

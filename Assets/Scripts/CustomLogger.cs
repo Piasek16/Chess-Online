@@ -7,6 +7,7 @@ public class CustomLogger : MonoBehaviour {
     void Awake() {
         if (Instance != null && Instance != this) Destroy(gameObject); else { Instance = this; DontDestroyOnLoad(gameObject); };
     }
+    public bool HideChat = false;
 
     uint qsize = 23;  // number of messages to keep
     Queue myLogQueue = new Queue();
@@ -49,6 +50,7 @@ public class CustomLogger : MonoBehaviour {
     }
 
     void OnGUI() {
+        if (HideChat) return;
         GUILayout.BeginArea(new Rect(0, 0, 400, Screen.height));
         GUILayout.Label("\n" + string.Join("\n", myLogQueue.ToArray()));
         GUILayout.EndArea();

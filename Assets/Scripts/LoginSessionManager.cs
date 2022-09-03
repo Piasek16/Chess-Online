@@ -7,11 +7,10 @@ using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Relay.Models;
 using System;
-using System.Net;
 using System.Linq;
 using Unity.Services.Relay;
-using System.Net.Sockets;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class LoginSessionManager : MonoBehaviour {
     public static LoginSessionManager Instance { get; private set; }
@@ -21,8 +20,9 @@ public class LoginSessionManager : MonoBehaviour {
 
     public string Username { get; private set; } = "Chess Player";
 	public string RelayCode { get; private set; } = null;
-	public string IP { get; private set; } = "127.0.0.1";
+	public string IP { get; private set; } = "0.0.0.0";
 	public ushort Port { get; private set; } = 25565;
+	public LobbyManager LobbyManager { get; set; } = null;
 
 	[SerializeField] private LobbyManager lobbyManagerPrefab;
     private GameObject usernameCanvas;
@@ -54,6 +54,7 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     public void AdvanceLoginCanvas() {
+        if (Username.Length < 1) { Debug.LogError("Username must be at least 1 character long!"); return; }
         usernameCanvas.SetActive(false);
         connectionCanvas.SetActive(true);
     }
@@ -151,19 +152,8 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     private void StartDirectHost() {
-        IP = GetLocalIPAddress();
         unityTransport.SetConnectionData(IP, Port);
         ConnectHost();
-    }
-
-    private string GetLocalIPAddress() {
-        var host = Dns.GetHostEntry(Dns.GetHostName());
-        foreach (var ip in host.AddressList) {
-            if (ip.AddressFamily == AddressFamily.InterNetwork) {
-                return ip.ToString();
-            }
-        }
-        throw new Exception("No network adapters with an IPv4 address in the system!");
     }
 
     private void ConnectHost() {
@@ -229,5 +219,19 @@ public class LoginSessionManager : MonoBehaviour {
             ConnectionData = allocation.ConnectionData, 
             HostConnectionData = allocation.HostConnectionData, 
             Key = allocation.Key };
+    }
+
+    bool hideGUI = false;
+    void Update() {
+        if (Input.GetKeyDown(KeyCode.Escape)) {
+            hideGUI = !hideGUI;
+            LobbyManager?.transform.GetChild(0).gameObject.SetActive(!hideGUI);
+            CustomLogger.Instance.HideChat = hideGUI;
+            Debug.Log(hideGUI ? "GUI Hidden!" : "GUI Shown!");
+        }
+    }
+
+    public void PlayerDisconnected() {
+        connectionCanvas.SetActive(true);
     }
 }
