@@ -10,7 +10,6 @@ using System;
 using System.Linq;
 using Unity.Services.Relay;
 using TMPro;
-using UnityEngine.SceneManagement;
 
 public class LoginSessionManager : MonoBehaviour {
     public static LoginSessionManager Instance { get; private set; }

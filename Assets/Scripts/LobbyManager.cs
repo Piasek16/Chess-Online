@@ -152,6 +152,7 @@ public class LobbyManager : NetworkBehaviour {
     }
 
     public void QuitLobby() {
+        Debug.Log("Player networking shutdown.");
         LoginSessionManager.Instance.PlayerDisconnected();
         NetworkManager.Singleton.Shutdown();
     }

@@ -359,7 +359,7 @@ public class BoardManager : MonoBehaviour {
         var turnsCompleted = int.Parse(fenParameters[5]);
     }
 
-    [Obsolete("Method not implemented yet.", true)]
+    [Obsolete("Method not implemented yet.")]
     public FixedString128Bytes ExportFenState() {
         FixedString128Bytes fenState = string.Empty;
         var reversedFenPieces = fenPieces.ToDictionary(piece => piece.Value, piece => piece.Key);

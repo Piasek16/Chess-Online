@@ -17,21 +17,22 @@ public class Player : NetworkBehaviour {
     Vector2 whitePosition = new Vector2(-2f, 1f);
     Vector2 blackPosition = new Vector2(-2f, 6f);
 
-    public void Setup(ulong whitePlayerID, ulong blackPlayerID) {
-        PlayerColor = (whitePlayerID == NetworkManager.LocalClientId);
-    }
-
     public override void OnNetworkSpawn() {
+        Debug.Log("Spawning player with data:");
+        Debug.Log("White player id: " + GameSessionManager.Instance.WhitePlayerID.Value);
+        Debug.Log("Black player id: " + GameSessionManager.Instance.BlackPlayerID.Value);
+        PlayerColor = NetworkManager.Singleton.LocalClientId == GameSessionManager.Instance.WhitePlayerID.Value;
+        Debug.Log("Player color set to: " + PlayerColor);
+
         usernameText = GetComponentInChildren<TMP_Text>();
 
         PlayerName.OnValueChanged += UpdatePlayerObjectName;
         if (IsOwner) {
             var _playerName = LoginSessionManager.Instance != null ? LoginSessionManager.Instance.Username : "Piasek";
             PlayerName.Value = _playerName;
-            UpdatePlayerObjectName(default, default);
+            UpdatePlayerObjectName(default, default); //check for double invocation
         }
 
-        PlayerColor = IsOwnedByServer;
         if (PlayerColor) {
             transform.position = whitePosition;
         } else {
