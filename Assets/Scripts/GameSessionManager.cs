@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,10 +16,10 @@ public class GameSessionManager : NetworkBehaviour {
 
     public bool MyTurn = false;
     public bool GameStarted = false;
+    public string EnPessantSquare = "-";
     public int HalfmoveClock = 0;
     public int FullmoveNumber = 1;
     public Player localPlayer = null;
-    //public Player opponentPlayer = null;
 
     [SerializeField] private GameObject ClassicPlayerObject;
     [SerializeField] private string fenStartingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -61,6 +62,9 @@ public class GameSessionManager : NetworkBehaviour {
         if (MyTurn) {
             OnMyTurn();
             CheckForChecks();
+        }
+        if (IsServer) {
+            DespawnEnPessantIfPossible();
         }
     }
 
@@ -129,10 +133,10 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private void UpdateFENBoardState() {
-        FixedString128Bytes fenState = BoardManager.Instance.ExportFenState();
+        FixedString128Bytes fenState = BoardManager.Instance.GetFENBoardState();
         fenState += " " + (WhitePlayersTurn.Value ? "w" : "b");
-        //Castling rights
-        //En pessant target
+        fenState += " " + BoardManager.Instance.GetFENCastlingRights();
+        fenState += " " + EnPessantSquare;
         fenState += " " + HalfmoveClock;
         fenState += " " + FullmoveNumber;
         FENBoardState.Value = fenState;
@@ -144,64 +148,77 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
-        localPlayer.RestoreOfficialBoard();
-        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
-
-
-        Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
-        NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().RestoreOfficialBoard();
-        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
-        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
-        BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
+    public void MovePieceServerRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, ServerRpcParams param = default) {
+        MovePieceClientRPC(oldPiecePosition, newPiecePosition, GetOtherPlayerTarget(param));
+        HalfmoveClock++;
+        if (!WhitePlayersTurn.Value) FullmoveNumber++;
+        UpdateFENBoardState();
+        Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
     }
 
     [ClientRpc]
-    public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
-        if (IsServer) return;
+    public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, ClientRpcParams param = default) {
+        localPlayer.RevertPremoves();
+        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition, true);
+        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
+        BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
         Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
-        NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().RestoreOfficialBoard();
-        BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
-        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
-        BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
+        localPlayer.RestorePremoves();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SummonGhostPawnBehindServerRPC(Vector2Int behind, Vector2Int parentPawnPosition) {
-        Debug.Log("Server summoning a ghost on " + behind);
-        BoardManager.Instance.SummonGhostPawn(behind, parentPawnPosition);
+    public void SummonGhostPawnServerRPC(Vector2Int parentPawnPosition, ServerRpcParams param = default) {
+        bool senderColor = param.Receive.SenderClientId == WhitePlayerID.Value;
+        Vector2Int ghostLocation = new Vector2Int(parentPawnPosition.x, parentPawnPosition.y + (senderColor ? -1 : 1));
+        Debug.Log("[ServerRPC] Summoning a ghost on " + ghostLocation);
+        SummonGhostPawnClientRPC(parentPawnPosition, ghostLocation);
+        EnPessantSquare = BoardManager.Vector2IntToBoardLocation(ghostLocation);
     }
 
     [ClientRpc]
-    public void SummonGhostPawnBehindClientRPC(Vector2Int behind, Vector2Int parentPawnPosition) {
-        if (IsServer) return;
-        Debug.Log("Client summoning a ghost on " + behind);
-        BoardManager.Instance.SummonGhostPawn(behind, parentPawnPosition);
+    public void SummonGhostPawnClientRPC(Vector2Int parentPawnPosition, Vector2Int ghostLocation) {
+        BoardManager.Instance.SummonGhostPawn(parentPawnPosition, ghostLocation);
+        Debug.Log("[ClientRPC] Client summoned a ghost on " + ghostLocation);
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    public void DisposeOfGhostServerRPC(Vector2Int location) {
-        (BoardManager.Instance.GetPieceFromSpace(location) as Pawn)?.DisposeOfGhost();
+    /// <summary>
+    /// To avoid preemptive despawning register en pessant after advancing turn
+    /// </summary>
+    private void DespawnEnPessantIfPossible() {
+        if (EnPessantSquare != "-") {
+            DisposeOfGhostClientRPC(BoardManager.BoardLocationToVector2Int(EnPessantSquare));
+            EnPessantSquare = "-";
+        }
     }
 
     [ClientRpc]
     public void DisposeOfGhostClientRPC(Vector2Int location) {
-        if (IsServer) return;
         (BoardManager.Instance.GetPieceFromSpace(location) as Pawn)?.DisposeOfGhost();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void PromotePawnToServerRPC(BoardManager.PieceType pieceType, Vector2Int location) {
-        Debug.Log("[ServerRPC] Promoted pawn from " + location + " to " + pieceType);
-        BoardManager.Instance.DestroyPiece(location);
-        BoardManager.Instance.SetSpace(location, pieceType);
+    public void PromotePawnToServerRPC(BoardManager.PieceType pieceType, Vector2Int location, ServerRpcParams param = default) {
+        Debug.Log("[ServerRPC] Promoting pawn from " + location + " to " + pieceType);
+        PromotePawnToClientRPC(pieceType, location, GetOtherPlayerTarget(param));
     }
 
     [ClientRpc]
-    public void PromotePawnToClientRPC(BoardManager.PieceType pieceType, Vector2Int location) {
-        if (IsServer) return;
-        Debug.Log("[ClientRPC] Promoted pawn from " + location + " to " + pieceType);
+    public void PromotePawnToClientRPC(BoardManager.PieceType pieceType, Vector2Int location, ClientRpcParams param = default) {
         BoardManager.Instance.DestroyPiece(location);
         BoardManager.Instance.SetSpace(location, pieceType);
+        Debug.Log("[ClientRPC] Promoted pawn from " + location + " to " + pieceType);
+    }
+
+    private ClientRpcParams GetOtherPlayerTarget(ServerRpcParams senderParams) {
+        ulong serverClientID = NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId;
+        bool isSenderServer = senderParams.Receive.SenderClientId == serverClientID;
+        ulong opponentID = localPlayer.PlayerColor ? BlackPlayerID.Value : WhitePlayerID.Value;
+        return new ClientRpcParams {
+            Send = new ClientRpcSendParams {
+                TargetClientIds = new ulong[] {
+                    isSenderServer ? opponentID : serverClientID,
+                }
+            }
+        };
     }
 }

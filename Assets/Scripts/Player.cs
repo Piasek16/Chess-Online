@@ -51,7 +51,7 @@ public class Player : NetworkBehaviour {
             }
         }
 
-        if (IsOwner) BoardManager.Instance.OnPlayerLogin();
+        //if (IsOwner) BoardManager.Instance.OnPlayerLogin();
 
         //if (IsLocalPlayer && !IsOwnedByServer) GameSessionManager.Instance.StartGameServerRPC();
     }
@@ -336,7 +336,10 @@ public class Player : NetworkBehaviour {
         public Piece capturedPiece;
     }
 
-    public void RestoreOfficialBoard() {
+    /// <summary>
+    /// Restores the official board state synchronized between players, by reverting player made premoves
+    /// </summary>
+    public void RevertPremoves() {
         if (preMoves != null) {
             preMoves.Reverse();
             foreach (PreMove preMove in preMoves) {

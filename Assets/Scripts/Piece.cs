@@ -11,7 +11,7 @@ public class Piece : MonoBehaviour {
     protected List<Vector2Int> possibleMoves;
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
 
-    public bool FirstMove { get; protected set; } = true;
+    public bool FirstMove { get; set; } = false;
 
     void Start() {
         possibleMoves = new List<Vector2Int>();

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using System;
+using Unity.VisualScripting;
+using UnityEditor;
+using static UnityEditor.FilePathAttribute;
 
 public class BoardManager : MonoBehaviour {
     [SerializeField] public Color whiteColor;
@@ -15,6 +18,7 @@ public class BoardManager : MonoBehaviour {
 
     Dictionary<int, Piece> pieces;
     private bool localPlayerColor;
+    private King[] kings;
 
     public King localPlayerKing;
     public GameObject[,] board = new GameObject[8, 8];
@@ -34,7 +38,7 @@ public class BoardManager : MonoBehaviour {
         BPawn = -6
     }
 
-    string files = "abcdefgh";
+    static string files = "abcdefgh";
     Shader defaultShader;
 
     public static BoardManager Instance { get; private set; }
@@ -61,12 +65,18 @@ public class BoardManager : MonoBehaviour {
         }
     }*/
 
-    public void OnPlayerLogin() {
-        localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor;
+    public void Setup() {
+        localPlayerColor = GameSessionManager.Instance.localPlayer.PlayerColor;
         GenerateBoard();
+    }
+
+    [Obsolete(null, true)]
+    public void OnPlayerLogin() {
+        //localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor;
+        //GenerateBoard();
         //LoadBoardState("/6*/////-6*////6///-6///5////2//-6*/-1//-2////////-3///5//-6*/-5//////////6*////-6///1/6*/////-6*//");
         //DefaultSetup();
-        LoadStateFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0");
+        //LoadStateFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0");
         //localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
         var kings = FindObjectsOfType<King>();
         foreach (var king in kings) {
@@ -176,7 +186,7 @@ public class BoardManager : MonoBehaviour {
         return GetPieceFromSpace((int)space.transform.position.x, (int)space.transform.position.y);
     }
 
-    public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
+    public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, bool animate = false) {
         var _oldPiece = GetPieceFromSpace(newPiecePosition);
         if (_oldPiece != null) {
             if ((_oldPiece as Pawn)?.IsGhost == true && GetPieceFromSpace(oldPiecePosition).GetType() == typeof(Pawn)) {
@@ -191,9 +201,9 @@ public class BoardManager : MonoBehaviour {
         //Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
     }
 
-    public void SummonGhostPawn(Vector2Int behind, Vector2Int parentPawnPosition) {
-        SetSpace(behind, PieceType.WPawn);
-        var ghost = GetPieceFromSpace(behind);
+    public void SummonGhostPawn(Vector2Int parentPawnPosition, Vector2Int ghostLocation) {
+        SetSpace(ghostLocation, PieceType.WPawn);
+        var ghost = GetPieceFromSpace(ghostLocation);
         ghost.GetComponent<Pawn>().InitGhost(parentPawnPosition);
     }
 
@@ -243,6 +253,7 @@ public class BoardManager : MonoBehaviour {
         Debug.Log("Current Boardstate: " + ExportBoardState());
     }
 
+    [Obsolete("Method is obsolete - use fen state instead")]
     public string ExportBoardState() {
         string boardState = string.Empty;
         foreach (GameObject space in board) {
@@ -254,6 +265,7 @@ public class BoardManager : MonoBehaviour {
         return boardState;
     }
 
+    [Obsolete("Method is obsolete - use fen state instead")]
     public void LoadBoardState(string boardStateData) {
         var boardEnumerator = board.GetEnumerator();
         var test = boardStateData.Split('/');
@@ -282,7 +294,11 @@ public class BoardManager : MonoBehaviour {
         HighlightTile(highlightedTo);
     }
 
-    Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
+    private void FindAndUpdateKings() {
+        kings = FindObjectsOfType<King>().OrderBy(x => x.ID).ToArray();
+    }
+
+    private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
         { 'K', PieceType.WKing },
         { 'Q', PieceType.WQueen },
         { 'B', PieceType.WBishop },
@@ -297,12 +313,10 @@ public class BoardManager : MonoBehaviour {
         { 'p', PieceType.BPawn },
     };
 
-    public void LoadStateFromFen(FixedString128Bytes fen) {
+    public void LoadBoardStateFromFEN(string fenBoardState) {
         CleanBoard();
-        var fenParameters = fen.ToString().Split(' ');
-        //Board state
         int file = 0, rank = 7;
-        foreach (char c in fenParameters[0]) {
+        foreach (char c in fenBoardState) {
             if (c == '/') {
                 file = 0;
                 rank--;
@@ -315,53 +329,46 @@ public class BoardManager : MonoBehaviour {
                 }
             }
         }
-
-        //Hookup below code to game session manager after a rewrite
-
-        //Active color
-        bool whitesTurn = fenParameters[1] == "w";
-        //Castling rights
-        List<Rook> rooks = new List<Rook>(FindObjectsOfType<Rook>());
-        if (fenParameters[2] != "-") {
-            foreach (char c in fenParameters[2]) {
-                switch (c) {
-                    case 'K': {
-                            var rook = GetPieceFromSpace(7, 0);
-                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
-                            break;
-                        }
-                    case 'k': {
-                            var rook = GetPieceFromSpace(7, 7);
-                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
-                            break;
-                        }
-                    case 'Q': {
-                            var rook = GetPieceFromSpace(0, 0);
-                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
-                            break;
-                        }
-                    case 'q': {
-                            var rook = GetPieceFromSpace(0, 7);
-                            if (rook.GetType() == typeof(Rook)) rooks.Remove((Rook)rook);
-                            break;
-                        }
-                }
-            }
-        }
-        Debug.Log("Calling first move on " + rooks.Count + " rooks!");
-        rooks?.ForEach(rook => rook.FirstMoveMade());
-        //En pessant
-        if (fenParameters[3] != "-") {
-            //GameSessionManager.Instance.SpawnGhostOnPosition and find its parent
-        }
-        //All moves
-        var movesMade = int.Parse(fenParameters[4]);
-        var turnsCompleted = int.Parse(fenParameters[5]);
+        FindAndUpdateKings();
     }
 
-    [Obsolete("Method not implemented yet.")]
-    public FixedString128Bytes ExportFenState() {
-        FixedString128Bytes fenState = string.Empty;
+    public void SetCastlingRightsFromFEN(string fenCastlingRights) {
+        if (fenCastlingRights == null || fenCastlingRights == "-") return;
+        Debug.Log("Setting castling rights:");
+        Debug.Log("White king pos: " + kings[0].Position);
+        Debug.Log("Black king pos: " + kings[1].Position);
+        foreach (char c in fenCastlingRights) {
+            switch (c) {
+                case 'K': {
+                        var rook = GetPieceFromSpace(7, 0);
+                        rook.FirstMove = true;
+                        kings[0].FirstMove = true;
+                        break;
+                    }
+                case 'k': {
+                        var rook = GetPieceFromSpace(7, 7);
+                        rook.FirstMove = true;
+                        kings[1].FirstMove = true;
+                        break;
+                    }
+                case 'Q': {
+                        var rook = GetPieceFromSpace(0, 0);
+                        rook.FirstMove = true;
+                        kings[0].FirstMove = true;
+                        break;
+                    }
+                case 'q': {
+                        var rook = GetPieceFromSpace(0, 7);
+                        rook.FirstMove = true;
+                        kings[1].FirstMove = true;
+                        break;
+                    }
+            }
+        }
+    }
+
+    public string GetFENBoardState() {
+        string fenBoardState = string.Empty;
         var reversedFenPieces = fenPieces.ToDictionary(piece => piece.Value, piece => piece.Key);
         for(int rank = 7; rank >= 0; rank--) {
             int emptySpaces = 0;
@@ -370,29 +377,49 @@ public class BoardManager : MonoBehaviour {
                 if (piece == null) {
                     emptySpaces++;
                 } else {
-                    if (emptySpaces > 0) fenState += emptySpaces.ToString();
+                    if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
                     emptySpaces = 0;
-                    fenState += reversedFenPieces[(PieceType)piece.ID].ToString();
+                    fenBoardState += reversedFenPieces[(PieceType)piece.ID].ToString();
                 }
             }
-            if (rank != 0) fenState += "/";
+            if (rank != 0) fenBoardState += "/";
         }
-        fenState += " ";
-        fenState += GameSessionManager.Instance.WhitePlayersTurn.Value ? "w" : "b";
-        fenState += " ";
-        //Check castling
-        fenState += "-";
-        fenState += " ";
-        //Check ghosts
-        fenState += "-";
-        fenState += " ";
-        //Add moves from Game session manager (when tracked)
-        fenState += "?";
-        fenState += " ";
-        //Add turnsCompleted from Game session manager (when tracked)
-        fenState += "?";
-        Debug.Log("Exported FEN state:");
-        Debug.Log(fenState);
-        return fenState;
+        return fenBoardState;
+    }
+
+    public string GetFENCastlingRights() {
+        string fenCastlingRights = string.Empty;
+        if (kings[0].FirstMove) {
+            if ((GetPieceFromSpace(7,0) as Rook)?.FirstMove == true) {
+                fenCastlingRights += "K";
+            }
+            if ((GetPieceFromSpace(0, 0) as Rook)?.FirstMove == true) {
+                fenCastlingRights += "Q";
+            }
+        }
+        if (kings[1].FirstMove) {
+            if ((GetPieceFromSpace(7, 7) as Rook)?.FirstMove == true) {
+                fenCastlingRights += "k";
+            }
+            if ((GetPieceFromSpace(0, 7) as Rook)?.FirstMove == true) {
+                fenCastlingRights += "q";
+            }
+        }
+        return fenCastlingRights;
+    }
+
+    public static string Vector2IntToBoardLocation(Vector2Int vector2Int) {
+        string location = string.Empty;
+        location += files[vector2Int.x];
+        location += vector2Int.y + 1;
+        return location;
+    }
+
+    public static Vector2Int BoardLocationToVector2Int(string boardLocation) {
+        if (boardLocation.Length > 2) { throw new Exception("Invalid board location was passed to location converter!"); }
+        Vector2Int vector2Int = new Vector2Int();
+        vector2Int.x = files.IndexOf(boardLocation[0]);
+        vector2Int.y = boardLocation[1] - '0' - 1;
+        return vector2Int;
     }
 }

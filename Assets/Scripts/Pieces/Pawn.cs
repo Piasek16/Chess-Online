@@ -47,20 +47,14 @@ public class Pawn : Piece {
             BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
             var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
             ghost.GetComponent<Pawn>().InitGhost(Position);
-            ghost.GetComponent<Pawn>().AddGhostDispose();
-            if (NetworkManager.Singleton.IsServer) {
-                Debug.Log("Sending a client summon ghost rpc");
-                GameSessionManager.Instance.SummonGhostPawnBehindClientRPC(behind, Position);
-            } else {
-                Debug.Log("Sending a server summon ghost rpc");
-                GameSessionManager.Instance.SummonGhostPawnBehindServerRPC(behind, Position);
-            }
+            //ghost.GetComponent<Pawn>().AddGhostDispose();
+            GameSessionManager.Instance.SummonGhostPawnServerRPC(Position);
         }
     }
 
-    public void AddGhostDispose() {
+    /*public void AddGhostDispose() {
         NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().DisposeOfGhosts += TriggerGhostDispose;
-    }
+    }*/
 
     public void InitGhost(Vector2Int pawnParentLocation) {
         ghostParent = BoardManager.Instance.GetPieceFromSpace(pawnParentLocation).GetComponent<Pawn>();
@@ -78,11 +72,11 @@ public class Pawn : Piece {
         scheduledExecution = true;
     }
 
-    public void TriggerGhostDispose() {
+    /*public void TriggerGhostDispose() {
         NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().DisposeOfGhosts -= TriggerGhostDispose;
         if (NetworkManager.Singleton.IsServer) GameSessionManager.Instance.DisposeOfGhostClientRPC(Position); else GameSessionManager.Instance.DisposeOfGhostServerRPC(Position);
         DisposeOfGhost();
-    }
+    }*/
 
     public void DisposeOfGhost() {
         if (ghostParent == null) { Debug.Log("Ghost Dispose Cancelled - piece is not a ghost"); return; }
