@@ -5,60 +5,56 @@ using System.Collections.Generic;
 using TMPro;
 
 public class Player : NetworkBehaviour {
-    public NetworkVariable<FixedString128Bytes> PlayerName = new NetworkVariable<FixedString128Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<FixedString32Bytes> PlayerName = new NetworkVariable<FixedString32Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-    public bool PlayerColor = false;
+    public bool PlayerColor;
     public Color32 preMoveColorWhite;
     public Color32 preMoveColorBlack;
 
-    public delegate void GhostDisposal();
-    public event GhostDisposal DisposeOfGhosts;
+    /*public delegate void GhostDisposal();
+    public event GhostDisposal DisposeOfGhosts;*/
 
     Vector2 whitePosition = new Vector2(-2f, 1f);
     Vector2 blackPosition = new Vector2(-2f, 6f);
 
     public override void OnNetworkSpawn() {
-        Debug.Log("Spawning player with data:");
-        Debug.Log("White player id: " + GameSessionManager.Instance.WhitePlayerID.Value);
-        Debug.Log("Black player id: " + GameSessionManager.Instance.BlackPlayerID.Value);
-        PlayerColor = NetworkManager.Singleton.LocalClientId == GameSessionManager.Instance.WhitePlayerID.Value;
+        Debug.Log("[Client] Spawned player for client ID: " + OwnerClientId);
+    }
+
+    public void SetupPlayerData(ulong whitePlayerID, ulong blackPlayerID) {
+        Debug.Log("White player id: " + whitePlayerID);
+        Debug.Log("Black player id: " + blackPlayerID);
+        PlayerColor = OwnerClientId == whitePlayerID;
         Debug.Log("Player color set to: " + PlayerColor);
-
-        usernameText = GetComponentInChildren<TMP_Text>();
-
-        PlayerName.OnValueChanged += UpdatePlayerObjectName;
-        if (IsOwner) {
-            var _playerName = LoginSessionManager.Instance != null ? LoginSessionManager.Instance.Username : "Piasek";
-            PlayerName.Value = _playerName;
-            UpdatePlayerObjectName(default, default); //check for double invocation
-        }
 
         if (PlayerColor) {
             transform.position = whitePosition;
         } else {
             transform.position = blackPosition;
         }
-
+        usernameText = GetComponentInChildren<TMP_Text>();
+        PlayerName.OnValueChanged += UpdatePlayerObjectName;
         if (IsOwner) {
+            string _playerName;
+            if (LoginSessionManager.Instance != null) {
+                _playerName = LoginSessionManager.Instance.Username;
+            } else {
+                _playerName = GameTestingManager.Instance.TestingUsername;
+            }
+            PlayerName.Value = _playerName;
             if (!PlayerColor) {
                 Camera.main.GetComponent<CameraManager>().AdjustPositionForBlackPlayer();
-                Quaternion rotated = Quaternion.Euler(0, 0, 180);
-                transform.rotation = rotated;
-                foreach (Player p in FindObjectsOfType<Player>()) {
-                    p.transform.position = new Vector2(p.transform.position.x + 11, p.transform.position.y);
-                    if (p.PlayerColor == true) p.transform.rotation = rotated;
-                }
             }
         }
-
-        //if (IsOwner) BoardManager.Instance.OnPlayerLogin();
-
-        //if (IsLocalPlayer && !IsOwnedByServer) GameSessionManager.Instance.StartGameServerRPC();
+        if (GameSessionManager.Instance.LocalPlayer.PlayerColor == false) {
+            Quaternion rotated = Quaternion.Euler(0, 0, 180);
+            transform.SetPositionAndRotation(new Vector2(transform.position.x + 11, transform.position.y), rotated);
+        }
     }
 
-    void UpdatePlayerObjectName(FixedString128Bytes previous, FixedString128Bytes newValue) {
-        gameObject.name = "Player (" + PlayerName.Value + ")";
-        usernameText.text = PlayerName.Value.ToString();
+    void UpdatePlayerObjectName(FixedString32Bytes previous, FixedString32Bytes newValue) {
+        gameObject.name = "Player (" + newValue + ")";
+        usernameText.text = newValue.ToString();
     }
 
     Camera defaultCamera;
@@ -101,7 +97,7 @@ public class Player : NetworkBehaviour {
     }
 
     public void OnMyTurn() {
-        DisposeOfGhosts?.Invoke();
+        //DisposeOfGhosts?.Invoke();
         if (preMoves != null && preMoves.Count > 0) {
             //Official board gets restored by game session
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
@@ -159,16 +155,9 @@ public class Player : NetworkBehaviour {
         }
     }
 
-    void UpdateSecondPlayerOnMove(Vector2Int from, Vector2Int to) {
-        if (IsServer)
-            GameSessionManager.Instance.MovePieceClientRPC(from, to);
-        else
-            GameSessionManager.Instance.MovePieceServerRPC(from, to);
-    }
-
     void RunLocalMoveLogic(Vector2Int location) {
         Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
-        UpdateSecondPlayerOnMove(oldPiecePosition, location);
+        GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
         BoardManager.Instance.HighlightMove(oldPiecePosition, location);
 
         (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
@@ -184,14 +173,16 @@ public class Player : NetworkBehaviour {
                 Vector2Int right = new Vector2Int(location.x + 1, location.y);
                 Vector2Int left = new Vector2Int(location.x - 1, location.y);
                 BoardManager.Instance.MovePiece(right, left);
-                UpdateSecondPlayerOnMove(right, left);
+                GameSessionManager.Instance.MovePieceServerRPC(right, left);
+                //UpdateSecondPlayerOnMove(right, left);
                 BoardManager.Instance.GetPieceFromSpace(left)?.FirstMoveMade();
             }
             if (location.x - oldPiecePosition.x == -2) {
                 Vector2Int right = new Vector2Int(location.x + 1, location.y);
                 Vector2Int left = new Vector2Int(location.x - 2, location.y);
                 BoardManager.Instance.MovePiece(left, right);
-                UpdateSecondPlayerOnMove(left, right);
+                GameSessionManager.Instance.MovePieceServerRPC(left, right);
+                //UpdateSecondPlayerOnMove(left, right);
                 BoardManager.Instance.GetPieceFromSpace(right)?.FirstMoveMade();
             }
         }

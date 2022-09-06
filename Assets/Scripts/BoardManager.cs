@@ -17,7 +17,6 @@ public class BoardManager : MonoBehaviour {
     [SerializeField] Piece[] piecesPrefabs;
 
     Dictionary<int, Piece> pieces;
-    private bool localPlayerColor;
     private King[] kings;
 
     public King localPlayerKing;
@@ -49,6 +48,7 @@ public class BoardManager : MonoBehaviour {
         foreach (Piece piece in piecesPrefabs) {
             pieces.Add(piece.ID, piece);
         }
+        GenerateBoard();
     }
 
     /*void Update() {
@@ -65,11 +65,6 @@ public class BoardManager : MonoBehaviour {
         }
     }*/
 
-    public void Setup() {
-        localPlayerColor = GameSessionManager.Instance.localPlayer.PlayerColor;
-        GenerateBoard();
-    }
-
     [Obsolete(null, true)]
     public void OnPlayerLogin() {
         //localPlayerColor = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor;
@@ -78,11 +73,11 @@ public class BoardManager : MonoBehaviour {
         //DefaultSetup();
         //LoadStateFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0");
         //localPlayerKing = (King)(localPlayerColor ? GetPieceFromSpace("e1") : GetPieceFromSpace("e8"));
-        var kings = FindObjectsOfType<King>();
+        /*var kings = FindObjectsOfType<King>();
         foreach (var king in kings) {
             if (king.ID * (localPlayerColor ? 1 : -1) > 0) localPlayerKing = king;
         }
-        Debug.Log("MY king is on: " + localPlayerKing.Position);
+        Debug.Log("MY king is on: " + localPlayerKing.Position);*/
     }
 
     void GenerateBoard() {
@@ -131,10 +126,11 @@ public class BoardManager : MonoBehaviour {
             if (piece != null) Destroy(piece.gameObject);
             return;
         }
-        var _ = Instantiate(pieces[(int)p], Vector3.zero, localPlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
+        var _ = Instantiate(pieces[(int)p], Vector3.zero, GameSessionManager.Instance.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
         _.transform.localPosition = Vector3.zero;
     }
 
+    [Obsolete("Use FEN format instead")]
     void DefaultSetup() {
         for (int i = 0; i < 8; i++) {
             SetSpace(i, 1, PieceType.WPawn);
@@ -249,9 +245,9 @@ public class BoardManager : MonoBehaviour {
         }
     }
 
-    public void LogBoardState() {
+    /*public void LogBoardState() {
         Debug.Log("Current Boardstate: " + ExportBoardState());
-    }
+    }*/
 
     [Obsolete("Method is obsolete - use fen state instead")]
     public string ExportBoardState() {
@@ -332,7 +328,7 @@ public class BoardManager : MonoBehaviour {
         FindAndUpdateKings();
     }
 
-    public void SetCastlingRightsFromFEN(string fenCastlingRights) {
+    public void LoadCastlingRightsFromFEN(string fenCastlingRights) {
         if (fenCastlingRights == null || fenCastlingRights == "-") return;
         Debug.Log("Setting castling rights:");
         Debug.Log("White king pos: " + kings[0].Position);
@@ -405,6 +401,7 @@ public class BoardManager : MonoBehaviour {
                 fenCastlingRights += "q";
             }
         }
+        if (string.IsNullOrEmpty(fenCastlingRights)) fenCastlingRights = "-";
         return fenCastlingRights;
     }
 

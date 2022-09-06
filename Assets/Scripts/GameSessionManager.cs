@@ -12,22 +12,29 @@ public class GameSessionManager : NetworkBehaviour {
     public NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();
     public NetworkVariable<ulong> BlackPlayerID = new NetworkVariable<ulong>();
     public NetworkVariable<bool> WhitePlayersTurn = new NetworkVariable<bool>(true);
-    public NetworkVariable<FixedString128Bytes> FENBoardState = new NetworkVariable<FixedString128Bytes>();
+    public NetworkVariable<FixedString128Bytes> FENGameState = new NetworkVariable<FixedString128Bytes>();
 
     public bool MyTurn = false;
     public bool GameStarted = false;
     public string EnPessantSquare = "-";
     public int HalfmoveClock = 0;
     public int FullmoveNumber = 1;
-    public Player localPlayer = null;
+    public Player LocalPlayer = null;
+    public Player OpponentPlayer = null;
 
     [SerializeField] private GameObject ClassicPlayerObject;
     [SerializeField] private string fenStartingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     public override void OnNetworkSpawn() {
         if (!IsServer) return;
+        if (Application.isEditor) return;
         InitializeGameServer();
-        InitializeGameClientRPC();
+        InitializeGameClientRPC(FENGameState.Value.ToString(), WhitePlayerID.Value, BlackPlayerID.Value);
+    }
+
+    public void InitializeTestGame() {
+        InitializeGameServer();
+        InitializeGameClientRPC(FENGameState.Value.ToString(), WhitePlayerID.Value, BlackPlayerID.Value);
     }
 
     private void InitializeGameServer() {
@@ -36,17 +43,24 @@ public class GameSessionManager : NetworkBehaviour {
         foreach (ulong id in connectedPlayers) {
             if (id != WhitePlayerID.Value) { BlackPlayerID.Value = id; break; }
         }
-        Debug.Log("Server initialized game with following parameters:");
+        Debug.Log("[Server] Game initialized with following parameters:");
         Debug.Log("White player id: " + WhitePlayerID.Value);
         Debug.Log("Black player id: " + BlackPlayerID.Value);
         foreach (ulong id in connectedPlayers) {
             SpawnPlayerObject(id);
         }
+        FENGameState.Value = fenStartingPosition;
     }
 
     [ClientRpc]
-    private void InitializeGameClientRPC() {
-        localPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>();
+    private void InitializeGameClientRPC(string fenGameState, ulong whitePlayerID, ulong blackPlayerID) {
+        LocalPlayer = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>();
+        foreach (Player p in FindObjectsOfType<Player>()) {
+            if (p.OwnerClientId != LocalPlayer.OwnerClientId) OpponentPlayer = p;
+        }
+        LocalPlayer.SetupPlayerData(whitePlayerID, blackPlayerID);
+        OpponentPlayer.SetupPlayerData(whitePlayerID, blackPlayerID);
+        LoadStateFromFEN(fenGameState);
         WhitePlayersTurn.OnValueChanged += InvokeTurnChangeLogic;
         GameStarted = true;
     }
@@ -54,7 +68,7 @@ public class GameSessionManager : NetworkBehaviour {
     private void SpawnPlayerObject(ulong clientID) {
         var player = Instantiate(ClassicPlayerObject);
         player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientID, true);
-        Debug.Log("Spawned classic mode player object for clientID: " + clientID);
+        Debug.Log("[Server] Spawned classic mode player object for clientID: " + clientID);
     }
 
     private void InvokeTurnChangeLogic(bool oldTurn, bool newTurn) {
@@ -69,7 +83,7 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private void SetMyTurn() {
-        if (localPlayer.PlayerColor == true) MyTurn = WhitePlayersTurn.Value; else MyTurn = !WhitePlayersTurn.Value;
+        if (LocalPlayer.PlayerColor == true) MyTurn = WhitePlayersTurn.Value; else MyTurn = !WhitePlayersTurn.Value;
         if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
     }
 
@@ -81,7 +95,7 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private bool IsPieceMyColor(Piece piece) {
-        return piece.ID * (localPlayer.PlayerColor ? 1 : -1) > 0;
+        return piece.ID * (LocalPlayer.PlayerColor ? 1 : -1) > 0;
     }
 
     private void OnMyTurn() {
@@ -100,7 +114,7 @@ public class GameSessionManager : NetworkBehaviour {
         } else if (legalMoves == 0) {
             EndGameRequestServerRPC(false); //stalemate
         } else {
-            localPlayer.OnMyTurn();
+            LocalPlayer.OnMyTurn();
         }
     }
 
@@ -132,14 +146,28 @@ public class GameSessionManager : NetworkBehaviour {
         }
     }
 
-    private void UpdateFENBoardState() {
+    private void LoadStateFromFEN(string FENGameState) {
+        string[] fenParameters = FENGameState.Split(" ");
+        BoardManager.Instance.LoadBoardStateFromFEN(fenParameters[0]);
+        WhitePlayersTurn.Value = fenParameters[1] == "w";
+        BoardManager.Instance.LoadCastlingRightsFromFEN(fenParameters[2]);
+        if (fenParameters[3] != "-") {
+            Vector2Int parentPawnPosition = BoardManager.BoardLocationToVector2Int(fenParameters[3]);
+            parentPawnPosition.y += WhitePlayersTurn.Value ? -1 : 1;
+            SummonGhostPawnServerRPC(parentPawnPosition, WhitePlayersTurn.Value ? -1 : 1);
+        }
+        HalfmoveClock = int.Parse(fenParameters[4]);
+        FullmoveNumber = int.Parse(fenParameters[5]);
+    }
+
+    private void UpdateFENGameState() {
         FixedString128Bytes fenState = BoardManager.Instance.GetFENBoardState();
         fenState += " " + (WhitePlayersTurn.Value ? "w" : "b");
         fenState += " " + BoardManager.Instance.GetFENCastlingRights();
         fenState += " " + EnPessantSquare;
         fenState += " " + HalfmoveClock;
         fenState += " " + FullmoveNumber;
-        FENBoardState.Value = fenState;
+        FENGameState.Value = fenState;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -152,23 +180,23 @@ public class GameSessionManager : NetworkBehaviour {
         MovePieceClientRPC(oldPiecePosition, newPiecePosition, GetOtherPlayerTarget(param));
         HalfmoveClock++;
         if (!WhitePlayersTurn.Value) FullmoveNumber++;
-        UpdateFENBoardState();
+        UpdateFENGameState();
         Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
     }
 
     [ClientRpc]
     public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, ClientRpcParams param = default) {
-        localPlayer.RevertPremoves();
+        LocalPlayer.RevertPremoves();
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition, true);
         BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
         BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
         Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
-        localPlayer.RestorePremoves();
+        LocalPlayer.RestorePremoves();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SummonGhostPawnServerRPC(Vector2Int parentPawnPosition, ServerRpcParams param = default) {
-        bool senderColor = param.Receive.SenderClientId == WhitePlayerID.Value;
+    public void SummonGhostPawnServerRPC(Vector2Int parentPawnPosition, int forceGhostColor = 0, ServerRpcParams param = default) {
+        bool senderColor = forceGhostColor != 0 ? (forceGhostColor > 0) : param.Receive.SenderClientId == WhitePlayerID.Value;
         Vector2Int ghostLocation = new Vector2Int(parentPawnPosition.x, parentPawnPosition.y + (senderColor ? -1 : 1));
         Debug.Log("[ServerRPC] Summoning a ghost on " + ghostLocation);
         SummonGhostPawnClientRPC(parentPawnPosition, ghostLocation);
@@ -212,7 +240,7 @@ public class GameSessionManager : NetworkBehaviour {
     private ClientRpcParams GetOtherPlayerTarget(ServerRpcParams senderParams) {
         ulong serverClientID = NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId;
         bool isSenderServer = senderParams.Receive.SenderClientId == serverClientID;
-        ulong opponentID = localPlayer.PlayerColor ? BlackPlayerID.Value : WhitePlayerID.Value;
+        ulong opponentID = LocalPlayer.PlayerColor ? BlackPlayerID.Value : WhitePlayerID.Value;
         return new ClientRpcParams {
             Send = new ClientRpcSendParams {
                 TargetClientIds = new ulong[] {
