@@ -166,7 +166,7 @@ public class MoveManager : MonoBehaviour {
     }
 
     public bool IsKingInCheck() {
-        var king = BoardManager.Instance.localPlayerKing;
+        var king = BoardManager.Instance.LocalPlayerKing;
         var positionsToCheck = new List<Vector2Int>();
         positionsToCheck.AddRange(GetDiagonalMoves(king.Position));
         positionsToCheck.AddRange(GetVerticalMoves(king.Position));

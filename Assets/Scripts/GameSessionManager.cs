@@ -72,19 +72,21 @@ public class GameSessionManager : NetworkBehaviour {
     }
 
     private void InvokeTurnChangeLogic(bool oldTurn, bool newTurn) {
-        SetMyTurn();
-        if (MyTurn) {
-            OnMyTurn();
-            CheckForChecks();
-        }
+        SetMyTurn(newTurn);
         if (IsServer) {
             DespawnEnPessantIfPossible();
         }
     }
 
-    private void SetMyTurn() {
-        if (LocalPlayer.PlayerColor == true) MyTurn = WhitePlayersTurn.Value; else MyTurn = !WhitePlayersTurn.Value;
-        if (MyTurn) Debug.Log("My Turn!"); else Debug.Log("Opponent's turn!");
+    private void SetMyTurn(bool whitePlayersTurn) {
+        if (LocalPlayer.PlayerColor == true) MyTurn = whitePlayersTurn; else MyTurn = !whitePlayersTurn;
+        if (MyTurn) {
+            Debug.Log("My Turn!");
+            OnMyTurn();
+            CheckForChecks();
+        } else {
+            Debug.Log("Opponent's turn!");
+        }
     }
 
     private void CheckForChecks() {
@@ -149,7 +151,7 @@ public class GameSessionManager : NetworkBehaviour {
     private void LoadStateFromFEN(string FENGameState) {
         string[] fenParameters = FENGameState.Split(" ");
         BoardManager.Instance.LoadBoardStateFromFEN(fenParameters[0]);
-        WhitePlayersTurn.Value = fenParameters[1] == "w";
+        bool whitePlayerToMove = fenParameters[1] == "w";
         BoardManager.Instance.LoadCastlingRightsFromFEN(fenParameters[2]);
         if (fenParameters[3] != "-") {
             Vector2Int parentPawnPosition = BoardManager.BoardLocationToVector2Int(fenParameters[3]);
@@ -158,6 +160,8 @@ public class GameSessionManager : NetworkBehaviour {
         }
         HalfmoveClock = int.Parse(fenParameters[4]);
         FullmoveNumber = int.Parse(fenParameters[5]);
+        SetMyTurn(whitePlayerToMove);
+        if (IsServer) WhitePlayersTurn.Value = whitePlayerToMove;
     }
 
     private void UpdateFENGameState() {
@@ -190,7 +194,7 @@ public class GameSessionManager : NetworkBehaviour {
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition, true);
         BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
         BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
-        Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(oldPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
+        Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         LocalPlayer.RestorePremoves();
     }
 

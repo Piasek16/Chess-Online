@@ -60,7 +60,7 @@ public class Player : NetworkBehaviour {
     Camera defaultCamera;
     Vector2 mousePos;
     Piece attachedPiece = null;
-    bool isAttached = false;
+    bool isAttached = false; //change to check for not null
     TMP_Text usernameText;
     bool pawnPromotionMode = false;
     Vector2Int promotionLocation;
@@ -99,7 +99,7 @@ public class Player : NetworkBehaviour {
     public void OnMyTurn() {
         //DisposeOfGhosts?.Invoke();
         if (preMoves != null && preMoves.Count > 0) {
-            //Official board gets restored by game session
+            RevertPremoves();
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
             if (pieceToMove != null && pieceToMove.ID * (PlayerColor ? 1 : -1) > 0 && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
                 ExecutePreMove();

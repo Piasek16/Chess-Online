@@ -8,15 +8,10 @@ public class Piece : MonoBehaviour {
 
     public Vector2Int Position { get => new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y)); }
 
-    protected List<Vector2Int> possibleMoves;
+    protected List<Vector2Int> possibleMoves = new List<Vector2Int>();
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
 
     public bool FirstMove { get; set; } = false;
-
-    void Start() {
-        possibleMoves = new List<Vector2Int>();
-    }
-
     public void FirstMoveMade() { FirstMove = false; }
 
     private Dictionary<GameObject, Color> spacesHighlighted;

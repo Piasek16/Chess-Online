@@ -19,7 +19,7 @@ public class BoardManager : MonoBehaviour {
     Dictionary<int, Piece> pieces;
     private King[] kings;
 
-    public King localPlayerKing;
+    public King LocalPlayerKing;
     public GameObject[,] board = new GameObject[8, 8];
     public enum PieceType : int {
         Empty = 0,
@@ -291,7 +291,8 @@ public class BoardManager : MonoBehaviour {
     }
 
     private void FindAndUpdateKings() {
-        kings = FindObjectsOfType<King>().OrderBy(x => x.ID).ToArray();
+        kings = FindObjectsOfType<King>().OrderByDescending(x => x.ID).ToArray();
+        LocalPlayerKing = GameSessionManager.Instance.LocalPlayer.PlayerColor ? kings[0] : kings[1];
     }
 
     private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
@@ -330,7 +331,7 @@ public class BoardManager : MonoBehaviour {
 
     public void LoadCastlingRightsFromFEN(string fenCastlingRights) {
         if (fenCastlingRights == null || fenCastlingRights == "-") return;
-        Debug.Log("Setting castling rights:");
+        Debug.Log("Setting castling rights: " + fenCastlingRights);
         Debug.Log("White king pos: " + kings[0].Position);
         Debug.Log("Black king pos: " + kings[1].Position);
         foreach (char c in fenCastlingRights) {
