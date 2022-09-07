@@ -12,7 +12,7 @@ public class Piece : MonoBehaviour {
     public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
 
     public bool FirstMove { get; set; } = false;
-    public void FirstMoveMade() { FirstMove = false; }
+    //public void FirstMoveMade() { FirstMove = false; }
 
     private Dictionary<GameObject, Color> spacesHighlighted;
 

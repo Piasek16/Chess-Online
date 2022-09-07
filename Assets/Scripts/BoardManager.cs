@@ -22,7 +22,7 @@ public class BoardManager : MonoBehaviour {
     public King LocalPlayerKing;
     public GameObject[,] board = new GameObject[8, 8];
     public enum PieceType : int {
-        Empty = 0,
+        None = 0,
         WKing = 1,
         WQueen = 2,
         WBishop = 3,
@@ -120,8 +120,8 @@ public class BoardManager : MonoBehaviour {
         SetSpace(location.x, location.y, p);
     }
     public void SetSpace(int positionX, int positionY, PieceType p) {
-        if (!MoveManager.Instance.IsPositionValid(new Vector2Int(positionX, positionY))) return;
-        if (p == PieceType.Empty) {
+        if (!MoveManager.IsPositionValid(new Vector2Int(positionX, positionY))) return;
+        if (p == PieceType.None) {
             var piece = GetPieceFromSpace(positionX, positionY);
             if (piece != null) Destroy(piece.gameObject);
             return;
@@ -156,7 +156,7 @@ public class BoardManager : MonoBehaviour {
     }
 
     public Piece GetPieceFromSpace(int positionX, int positionY) {
-        if (!MoveManager.Instance.IsPositionValid(new Vector2Int(positionX, positionY))) {
+        if (!MoveManager.IsPositionValid(new Vector2Int(positionX, positionY))) {
             Debug.LogWarning("Player tried to get a piece from a non existent position " + new Vector2Int(positionX, positionY));
             return null;
         }
@@ -241,7 +241,7 @@ public class BoardManager : MonoBehaviour {
 
     public void CleanBoard() {
         foreach (GameObject space in board) {
-            SetSpace(space, PieceType.Empty);
+            SetSpace(space, PieceType.None);
         }
     }
 
@@ -268,13 +268,13 @@ public class BoardManager : MonoBehaviour {
         foreach (string s in boardStateData.Split('/')) {
             if (!boardEnumerator.MoveNext()) break;
             if (string.IsNullOrEmpty(s)) {
-                SetSpace((GameObject)boardEnumerator.Current, PieceType.Empty);
+                SetSpace((GameObject)boardEnumerator.Current, PieceType.None);
             } else {
                 string pieceData = s;
                 bool firstMoveStatus = pieceData[^1] == '*';
                 if (firstMoveStatus) pieceData = pieceData.TrimEnd('*');
                 SetSpace((GameObject)boardEnumerator.Current, (PieceType)int.Parse(pieceData));
-                if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMoveMade();
+                if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMove = false;
             }
         }
     }
@@ -327,6 +327,7 @@ public class BoardManager : MonoBehaviour {
             }
         }
         FindAndUpdateKings();
+        SetPawnFirstMovePrivileges();
     }
 
     public void LoadCastlingRightsFromFEN(string fenCastlingRights) {
@@ -419,5 +420,14 @@ public class BoardManager : MonoBehaviour {
         vector2Int.x = files.IndexOf(boardLocation[0]);
         vector2Int.y = boardLocation[1] - '0' - 1;
         return vector2Int;
+    }
+
+    private void SetPawnFirstMovePrivileges() {
+        for(int i = 0; i < 8; i++) {
+            var pieceFirstRow = GetPieceFromSpace(i, 1);
+            if (pieceFirstRow != null) pieceFirstRow.FirstMove = true;
+            var pieceSecondRow = GetPieceFromSpace(i, 6);
+            if (pieceSecondRow != null) pieceSecondRow.FirstMove = true;
+        }
     }
 }

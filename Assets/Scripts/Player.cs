@@ -3,6 +3,8 @@ using Unity.Netcode;
 using Unity.Collections;
 using System.Collections.Generic;
 using TMPro;
+using System.Diagnostics.Tracing;
+using static UnityEditor.FilePathAttribute;
 
 public class Player : NetworkBehaviour {
     public NetworkVariable<FixedString32Bytes> PlayerName = new NetworkVariable<FixedString32Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
@@ -57,25 +59,19 @@ public class Player : NetworkBehaviour {
         usernameText.text = newValue.ToString();
     }
 
-    Camera defaultCamera;
     Vector2 mousePos;
     Piece attachedPiece = null;
-    bool isAttached = false; //change to check for not null
     TMP_Text usernameText;
-    bool pawnPromotionMode = false;
-    Vector2Int promotionLocation;
-    List<PreMove> preMoves;
+    //bool pawnPromotionMode = false;
+    Vector2Int? promotionLocation = null;
+    List<PreMove> preMoves = new List<PreMove>();
     GameObject capturedFromPremovesContainer;
-    Vector2Int? arrowPointerBeginning;
-    List<GameObject> pointerArrows;
+    Vector2Int? arrowPointerBeginning = null;
+    List<GameObject> pointerArrows = new List<GameObject>();
 
     void Start() {
         //Called after OnNetworkSpawn
         if (!IsOwner) return;
-        defaultCamera = Camera.main;
-        preMoves = new List<PreMove>();
-        arrowPointerBeginning = null;
-        pointerArrows = new List<GameObject>();
         capturedFromPremovesContainer = new GameObject("PiecesCapturedFromPremovesContainer");
         capturedFromPremovesContainer.transform.position = new Vector3(0, -2, 0);
     }
@@ -83,121 +79,129 @@ public class Player : NetworkBehaviour {
     void Update() {
         if (!IsOwner) return;
         if (!GameSessionManager.Instance.GameStarted) return;
-        if (pawnPromotionMode) {
+        if (promotionLocation != null) {
             ProceedPromotion();
             return;
         }
-        mousePos = defaultCamera.ScreenToWorldPoint(Input.mousePosition);
+        mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
-        if (Input.GetMouseButtonDown(0)) AttachPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
-        if (Input.GetMouseButtonUp(0)) DetachPiece(roundedMousePos);
-        if (isAttached) HoldPiece();
+        if (Input.GetMouseButtonDown(0)) PickUpPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
+        if (Input.GetMouseButtonUp(0)) DropPiece(roundedMousePos);
+        if (attachedPiece != null) HoldPiece();
         if (Input.GetMouseButtonDown(1)) SetArrowPointerBeginning(roundedMousePos);
         if (Input.GetMouseButtonUp(1)) DrawArrowPointer(roundedMousePos);
     }
 
+    //re-check
     public void OnMyTurn() {
-        //DisposeOfGhosts?.Invoke();
-        if (preMoves != null && preMoves.Count > 0) {
+        if (preMoves.Count > 0) {
             RevertPremoves();
             var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
-            if (pieceToMove != null && pieceToMove.ID * (PlayerColor ? 1 : -1) > 0 && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
+            if (pieceToMove != null && GameSessionManager.Instance.IsPieceMyColor(pieceToMove) && !MoveManager.Instance.IsKingInCheck() && pieceToMove.PossibleMoves.Contains(preMoves[0].to)) {
                 ExecutePreMove();
                 RestorePremoves();
-                return;
             } else {
                 preMoves.Clear();
             }
         }
     }
 
-    private Vector2Int oldPiecePosition;
-    private List<Vector2Int> oldPossibleMoves;
+    private Vector2Int heldPieceLastPosition;
+    private List<Vector2Int> heldPieceLastPossibleMoves;
 
-    void AttachPiece(Piece piece) {
-        if (piece == null) return;
-        if (piece.ID > 0 && !PlayerColor || piece.ID < 0 && PlayerColor) return;
-        piece.HighlightPossibleMoves(out oldPossibleMoves);
+    void PickUpPiece(Piece piece) {
+        if (piece == null || !GameSessionManager.Instance.IsPieceMyColor(piece)) return;
+        piece.HighlightPossibleMoves(out heldPieceLastPossibleMoves);
         attachedPiece = piece;
         attachedPiece.transform.parent = null;
-        oldPiecePosition = piece.Position;
-        isAttached = true;
+        heldPieceLastPosition = piece.Position;
         RemovePointerArrows();
     }
 
-    void DetachPiece(Vector2Int location) {
+    void DropPiece(Vector2Int dropLocation) {
         if (attachedPiece == null) return;
         attachedPiece.ResetPossibleMovesHighlight();
-        if (!oldPossibleMoves.Contains(attachedPiece.Position)) {
-            RestoreAttachedPiecePosition();
+        if (!heldPieceLastPossibleMoves.Contains(attachedPiece.Position)) {
+            RestoreHeldPiecePosition();
         } else if (!GameSessionManager.Instance.MyTurn) {
-            RestoreAttachedPiecePosition();
-            RegisterPreMove(attachedPiece, oldPiecePosition, location);
+            RestoreHeldPiecePosition();
+            RegisterPreMove(attachedPiece, heldPieceLastPosition, dropLocation);
         } else {
-            RestoreAttachedPiecePosition();
-            BoardManager.Instance.MovePiece(oldPiecePosition, location);
-            RunLocalMoveLogic(location);
-
-            if (!pawnPromotionMode) GameSessionManager.Instance.AdvanceTurnServerRPC();
+            RestoreHeldPiecePosition();
+            BoardManager.Instance.MovePiece(heldPieceLastPosition, dropLocation);
+            RunLocalMoveLogic(dropLocation);
+            if (promotionLocation == null) GameSessionManager.Instance.AdvanceTurnServerRPC();
         }
         attachedPiece = null;
-        isAttached = false;
     }
 
     void HoldPiece() {
         attachedPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -0.3f);
     }
 
-    void RestoreAttachedPiecePosition() {
+    void RestoreHeldPiecePosition() {
         if (attachedPiece != null) {
-            attachedPiece.transform.parent = BoardManager.Instance.board[oldPiecePosition.x, oldPiecePosition.y].transform;
+            attachedPiece.transform.parent = BoardManager.Instance.board[heldPieceLastPosition.x, heldPieceLastPosition.y].transform;
             attachedPiece.transform.localPosition = Vector3.zero;
         }
     }
 
-    void RunLocalMoveLogic(Vector2Int location) {
-        Debug.Log("Moved " + attachedPiece.name + " from " + oldPiecePosition + " to " + location);
-        GameSessionManager.Instance.MovePieceServerRPC(oldPiecePosition, location);
-        BoardManager.Instance.HighlightMove(oldPiecePosition, location);
-
-        (attachedPiece as Pawn)?.FirstMoveMade(Mathf.Abs(location.y - oldPiecePosition.y) == 2);
-        attachedPiece.FirstMoveMade();
-
-        CheckForCastling(location);
-        CheckForPromotion(location);
-    }
-
-    void CheckForCastling(Vector2Int location) {
-        if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(location.x - oldPiecePosition.x) == 2) {
-            if (location.x - oldPiecePosition.x == 2) {
-                Vector2Int right = new Vector2Int(location.x + 1, location.y);
-                Vector2Int left = new Vector2Int(location.x - 1, location.y);
+    void RunLocalMoveLogic(Vector2Int movedToLocation) {
+        Debug.Log("Moved " + attachedPiece.name + " from " + heldPieceLastPosition + " to " + movedToLocation);
+        GameSessionManager.Instance.MovePieceServerRPC(heldPieceLastPosition, movedToLocation);
+        BoardManager.Instance.HighlightMove(heldPieceLastPosition, movedToLocation);
+        if (CheckForEnPessant(movedToLocation)) GameSessionManager.Instance.SummonGhostPawnServerRPC(movedToLocation);
+        switch (CheckForCastling(movedToLocation)) {
+            case 0: break;
+            case 1: {
+                Vector2Int right = new Vector2Int(movedToLocation.x + 1, movedToLocation.y);
+                Vector2Int left = new Vector2Int(movedToLocation.x - 1, movedToLocation.y);
                 BoardManager.Instance.MovePiece(right, left);
                 GameSessionManager.Instance.MovePieceServerRPC(right, left);
-                //UpdateSecondPlayerOnMove(right, left);
-                BoardManager.Instance.GetPieceFromSpace(left)?.FirstMoveMade();
+                BoardManager.Instance.GetPieceFromSpace(left).FirstMove = false;
+                break;
             }
-            if (location.x - oldPiecePosition.x == -2) {
-                Vector2Int right = new Vector2Int(location.x + 1, location.y);
-                Vector2Int left = new Vector2Int(location.x - 2, location.y);
+            case -1: {
+                Vector2Int right = new Vector2Int(movedToLocation.x + 1, movedToLocation.y);
+                Vector2Int left = new Vector2Int(movedToLocation.x - 2, movedToLocation.y);
                 BoardManager.Instance.MovePiece(left, right);
                 GameSessionManager.Instance.MovePieceServerRPC(left, right);
-                //UpdateSecondPlayerOnMove(left, right);
-                BoardManager.Instance.GetPieceFromSpace(right)?.FirstMoveMade();
+                BoardManager.Instance.GetPieceFromSpace(right).FirstMove = false;
+                break;
             }
         }
-    }
-
-    void CheckForPromotion(Vector2Int location) {
-        if ((attachedPiece as Pawn)?.CheckForPromotion() == true) {
-            pawnPromotionMode = true;
-            promotionLocation = location;
+        if (CheckForPromotion(movedToLocation)) {
+            promotionLocation = movedToLocation;
             Debug.Log("Choose a promotion by typing:");
             Debug.Log("1 - Queen");
             Debug.Log("2 - Rook");
             Debug.Log("3 - Bishop");
             Debug.Log("4 - Knight");
         }
+        attachedPiece.FirstMove = false;
+    }
+
+    bool CheckForEnPessant(Vector2Int movedToLocation) {
+        return Mathf.Abs(movedToLocation.y - heldPieceLastPosition.y) == 2;
+    }
+
+    sbyte CheckForCastling(Vector2Int movedToLocation) {
+        if (attachedPiece.GetType() == typeof(King) && Mathf.Abs(movedToLocation.x - heldPieceLastPosition.x) == 2) {
+            if (movedToLocation.x - heldPieceLastPosition.x == 2) {
+                return 1;
+            }
+            if (movedToLocation.x - heldPieceLastPosition.x == -2) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    bool CheckForPromotion(Vector2Int movedToLocation) {
+        if ((attachedPiece as Pawn)?.CheckForPromotion() == true) {
+            return true;
+        }
+        return false;
     }
 
     void ProceedPromotion() {
@@ -208,23 +212,62 @@ public class Player : NetworkBehaviour {
     }
 
     void PromotePawnTo(BoardManager.PieceType p) {
-        pawnPromotionMode = false;
-        BoardManager.Instance.DestroyPiece(promotionLocation);
-        BoardManager.Instance.SetSpace(promotionLocation, p);
-        if (IsServer) GameSessionManager.Instance.PromotePawnToClientRPC(p, promotionLocation); else GameSessionManager.Instance.PromotePawnToServerRPC(p, promotionLocation);
-        promotionLocation = Vector2Int.zero;
+        if (promotionLocation == null) return;
+        BoardManager.Instance.DestroyPiece(promotionLocation.Value);
+        BoardManager.Instance.SetSpace(promotionLocation.Value, p);
+        GameSessionManager.Instance.PromotePawnToServerRPC(p, promotionLocation.Value);
+        promotionLocation = null;
         GameSessionManager.Instance.AdvanceTurnServerRPC();
+    }
+
+    enum PreMoveSpecialAction : sbyte {
+        None,
+        CastleK,
+        CastleQ,
+        Promotion,
+    }
+
+    struct PreMove {
+        public Vector2Int from;
+        public Vector2Int to;
+        public Piece capturedPiece;
+        public PreMoveSpecialAction action;
+        public BoardManager.PieceType promotionPiece;
     }
 
     void RegisterPreMove(Piece pieceToMove, Vector2Int from, Vector2Int to) {
         Piece capturedPiece = BoardManager.Instance.GetPieceFromSpace(to);
-        PreMove preMove = new PreMove { pieceToMove = pieceToMove, from = from, to = to, capturedPiece = capturedPiece };
-        preMoves.Add(preMove);
-        if (capturedPiece != null) capturedPiece.transform.parent = capturedFromPremovesContainer.transform;
-        BoardManager.Instance.SetTileColor(to, preMoveColorWhite, preMoveColorBlack);
+        PreMove preMove = new PreMove { from = from, to = to, capturedPiece = null, action = PreMoveSpecialAction.None, promotionPiece = BoardManager.PieceType.None };
+        if (capturedPiece != null) {
+            preMove.capturedPiece = capturedPiece;
+            capturedPiece.transform.parent = capturedFromPremovesContainer.transform;
+        }
         BoardManager.Instance.MovePiece(from, to);
+        switch (CheckForCastling(to)) {
+            case 0: break;
+            case 1: {
+                preMove.action = PreMoveSpecialAction.CastleK;
+                break;
+            }
+            case -1: {
+                preMove.action = PreMoveSpecialAction.CastleQ;
+                break;
+            }
+        }
+        if (CheckForPromotion(to)) {
+            promotionLocation = to;
+            Debug.Log("Choose a promotion by typing:");
+            Debug.Log("1 - Queen");
+            Debug.Log("2 - Rook");
+            Debug.Log("3 - Bishop");
+            Debug.Log("4 - Knight");
+        }
+        BoardManager.Instance.SetTileColor(to, preMoveColorWhite, preMoveColorBlack);
+
         pieceToMove.transform.localPosition = new Vector3(0, 0, -0.1f);
+        preMoves.Add(preMove);
         Debug.Log("Added a premove of " + pieceToMove.name + " from " + from + " to " + to + " while capturing " + capturedPiece);
+        Debug.Log("Premove special action: " + preMove.action.ToString() + " Promotion target: " + preMove.promotionPiece.ToString());
     }
 
     void ExecutePreMove() {
@@ -233,8 +276,7 @@ public class Player : NetworkBehaviour {
         var preMovePiece = BoardManager.Instance.GetPieceFromSpace(oldPosition);
 
         attachedPiece = preMovePiece;
-        oldPiecePosition = oldPosition;
-        isAttached = true;
+        heldPieceLastPosition = oldPosition;
 
         Debug.Log("Executing a premove of " + preMovePiece.name + " from " + oldPosition);
         BoardManager.Instance.MovePiece(oldPosition, newPosition);
@@ -243,13 +285,49 @@ public class Player : NetworkBehaviour {
         RunLocalMoveLogic(newPosition);
 
         attachedPiece = null;
-        isAttached = false;
 
         Debug.Log("Premove executed, piece moved to " + newPosition);
         preMoves.RemoveAt(0);
         Debug.Log("Removed premove 0 from list");
         Debug.Log("Remaining premoves: " + preMoves.Count);
         GameSessionManager.Instance.AdvanceTurnServerRPC();
+    }
+
+    /// <summary>
+    /// Restores the official board state synchronized between players, by reverting player made premoves
+    /// </summary>
+    public void RevertPremoves() {
+        if (preMoves != null) {
+            preMoves.Reverse();
+            foreach (PreMove preMove in preMoves) {
+                if (!GameSessionManager.Instance.IsPieceMyColor(BoardManager.Instance.GetPieceFromSpace(preMove.to))) continue;
+                BoardManager.Instance.MovePiece(preMove.to, preMove.from);
+                BoardManager.Instance.RestoreTileColor(preMove.to);
+                Debug.Log("Restoring a move to " + preMove.to + " from " + preMove.from);
+                if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = BoardManager.Instance.board[preMove.to.x, preMove.to.y].transform;
+            }
+            preMoves.Reverse();
+        }
+    }
+
+    public void RestorePremoves() {
+        if (preMoves != null) {
+            for (int i = 0; i < preMoves.Count; i++) {
+                var preMove = preMoves[i];
+                if (!GameSessionManager.Instance.IsPieceMyColor(BoardManager.Instance.GetPieceFromSpace(preMove.from))) {
+                    preMoves.Clear();
+                    break;
+                }
+                var cappedPiece = BoardManager.Instance.GetPieceFromSpace(preMove.to);
+                if (cappedPiece != null) preMove.capturedPiece = cappedPiece;
+                if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = capturedFromPremovesContainer.transform;
+                BoardManager.Instance.MovePiece(preMove.from, preMove.to);
+                BoardManager.Instance.SetTileColor(preMove.to, preMoveColorWhite, preMoveColorBlack);
+                BoardManager.Instance.GetPieceFromSpace(preMove.to).transform.localPosition = new Vector3(0, 0, -0.1f);
+                Debug.Log("Redoing a move from " + preMove.from + " to " + preMove.to);
+                preMoves[i] = preMove;
+            }
+        }
     }
 
     void SetArrowPointerBeginning(Vector2Int location) {
@@ -318,46 +396,5 @@ public class Player : NetworkBehaviour {
             Destroy(arrow);
         }
         pointerArrows.Clear();
-    }
-
-    struct PreMove {
-        public Piece pieceToMove;
-        public Vector2Int from;
-        public Vector2Int to;
-        public Piece capturedPiece;
-    }
-
-    /// <summary>
-    /// Restores the official board state synchronized between players, by reverting player made premoves
-    /// </summary>
-    public void RevertPremoves() {
-        if (preMoves != null) {
-            preMoves.Reverse();
-            foreach (PreMove preMove in preMoves) {
-                if (BoardManager.Instance.GetPieceFromSpace(preMove.to).ID * (PlayerColor ? 1 : -1) < 0) continue;
-                BoardManager.Instance.MovePiece(preMove.to, preMove.from);
-                BoardManager.Instance.RestoreTileColor(preMove.to);
-                Debug.Log("Restoring a move to " + preMove.to + " from " + preMove.from);
-                if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = BoardManager.Instance.board[preMove.to.x, preMove.to.y].transform;
-            }
-            preMoves.Reverse();
-        }
-    }
-
-    public void RestorePremoves() {
-        if (preMoves != null) {
-            for (int i = 0; i < preMoves.Count; i++) {
-                var preMove = preMoves[i];
-                if (BoardManager.Instance.GetPieceFromSpace(preMove.from).ID * (PlayerColor ? 1 : -1) < 0) continue;
-                var cappedPiece = BoardManager.Instance.GetPieceFromSpace(preMove.to);
-                if (cappedPiece != null) preMove.capturedPiece = cappedPiece;
-                if (preMove.capturedPiece != null) preMove.capturedPiece.transform.parent = capturedFromPremovesContainer.transform;
-                BoardManager.Instance.MovePiece(preMove.from, preMove.to);
-                BoardManager.Instance.SetTileColor(preMove.to, preMoveColorWhite, preMoveColorBlack);
-                BoardManager.Instance.GetPieceFromSpace(preMove.to).transform.localPosition = new Vector3(0, 0, -0.1f);
-                Debug.Log("Redoing a move from " + preMove.from + " to " + preMove.to);
-                preMoves[i] = preMove;
-            }
-        }
     }
 }

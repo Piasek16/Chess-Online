@@ -24,6 +24,7 @@ public class GameSessionManager : NetworkBehaviour {
 
     [SerializeField] private GameObject ClassicPlayerObject;
     [SerializeField] private string fenStartingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private bool preventFirstEnPessantDispose = true;
 
     public override void OnNetworkSpawn() {
         if (!IsServer) return;
@@ -96,7 +97,7 @@ public class GameSessionManager : NetworkBehaviour {
         }
     }
 
-    private bool IsPieceMyColor(Piece piece) {
+    public bool IsPieceMyColor(Piece piece) {
         return piece.ID * (LocalPlayer.PlayerColor ? 1 : -1) > 0;
     }
 
@@ -156,7 +157,7 @@ public class GameSessionManager : NetworkBehaviour {
         if (fenParameters[3] != "-") {
             Vector2Int parentPawnPosition = BoardManager.BoardLocationToVector2Int(fenParameters[3]);
             parentPawnPosition.y += WhitePlayersTurn.Value ? -1 : 1;
-            SummonGhostPawnServerRPC(parentPawnPosition, WhitePlayersTurn.Value ? -1 : 1);
+            SummonGhostPawnServerRPC(parentPawnPosition, (sbyte)(WhitePlayersTurn.Value ? -1 : 1));
         }
         HalfmoveClock = int.Parse(fenParameters[4]);
         FullmoveNumber = int.Parse(fenParameters[5]);
@@ -176,6 +177,7 @@ public class GameSessionManager : NetworkBehaviour {
 
     [ServerRpc(RequireOwnership = false)]
     public void AdvanceTurnServerRPC() {
+        UpdateFENGameState();
         WhitePlayersTurn.Value = !WhitePlayersTurn.Value;
     }
 
@@ -184,7 +186,6 @@ public class GameSessionManager : NetworkBehaviour {
         MovePieceClientRPC(oldPiecePosition, newPiecePosition, GetOtherPlayerTarget(param));
         HalfmoveClock++;
         if (!WhitePlayersTurn.Value) FullmoveNumber++;
-        UpdateFENGameState();
         Debug.Log("[ServerRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
     }
 
@@ -192,19 +193,23 @@ public class GameSessionManager : NetworkBehaviour {
     public void MovePieceClientRPC(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, ClientRpcParams param = default) {
         LocalPlayer.RevertPremoves();
         BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition, true);
-        BoardManager.Instance.GetPieceFromSpace(newPiecePosition)?.FirstMoveMade();
+        BoardManager.Instance.GetPieceFromSpace(newPiecePosition).FirstMove = false;
         BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
         Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
         LocalPlayer.RestorePremoves();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void SummonGhostPawnServerRPC(Vector2Int parentPawnPosition, int forceGhostColor = 0, ServerRpcParams param = default) {
+    public void SummonGhostPawnServerRPC(Vector2Int parentPawnPosition, sbyte forceGhostColor = 0, ServerRpcParams param = default) {
+        if (EnPessantSquare != "-") {
+            DespawnEnPessantIfPossible();
+        }
         bool senderColor = forceGhostColor != 0 ? (forceGhostColor > 0) : param.Receive.SenderClientId == WhitePlayerID.Value;
         Vector2Int ghostLocation = new Vector2Int(parentPawnPosition.x, parentPawnPosition.y + (senderColor ? -1 : 1));
         Debug.Log("[ServerRPC] Summoning a ghost on " + ghostLocation);
         SummonGhostPawnClientRPC(parentPawnPosition, ghostLocation);
         EnPessantSquare = BoardManager.Vector2IntToBoardLocation(ghostLocation);
+        preventFirstEnPessantDispose = true;
     }
 
     [ClientRpc]
@@ -213,13 +218,14 @@ public class GameSessionManager : NetworkBehaviour {
         Debug.Log("[ClientRPC] Client summoned a ghost on " + ghostLocation);
     }
 
-    /// <summary>
-    /// To avoid preemptive despawning register en pessant after advancing turn
-    /// </summary>
     private void DespawnEnPessantIfPossible() {
         if (EnPessantSquare != "-") {
-            DisposeOfGhostClientRPC(BoardManager.BoardLocationToVector2Int(EnPessantSquare));
-            EnPessantSquare = "-";
+            if (preventFirstEnPessantDispose == true) {
+                preventFirstEnPessantDispose = false;
+            } else {
+                DisposeOfGhostClientRPC(BoardManager.BoardLocationToVector2Int(EnPessantSquare));
+                EnPessantSquare = "-";
+            }
         }
     }
 

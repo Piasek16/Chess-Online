@@ -19,30 +19,30 @@ public class Pawn : Piece {
         }
     }
 
-    public void FirstMoveMade(bool wasTwoSquares) {
+    /*public void FirstMoveMade(bool wasTwoSquares) {
         FirstMove = false;
         if (wasTwoSquares) {
             var left = new Vector2Int(Position.x - 1, Position.y);
             var right = new Vector2Int(Position.x + 1, Position.y);
             bool doSummon = false;
-            if (MoveManager.Instance.IsPositionValid(left)) {
+            if (MoveManager.IsPositionValid(left)) {
                 if (BoardManager.Instance.GetPieceFromSpace(left)?.GetType() == typeof(Pawn)) {
                     doSummon = true;
                 }
             }
-            if (MoveManager.Instance.IsPositionValid(right)) {
+            if (MoveManager.IsPositionValid(right)) {
                 if (BoardManager.Instance.GetPieceFromSpace(right)?.GetType() == typeof(Pawn)) {
                     doSummon = true;
                 }
             }
             if (doSummon) SummonGhostPawnBehind();
         }
-    }
+    }*/
 
-    private Vector2Int behind;
+    /*private Vector2Int behind;
     private void SummonGhostPawnBehind() {
         behind = new Vector2Int(Position.x, Position.y + (ID > 0 ? - 1 : 1));
-        if (MoveManager.Instance.IsPositionValid(behind)) {
+        if (MoveManager.IsPositionValid(behind)) {
             Debug.Log("Summoning a ghost on " + behind);
             BoardManager.Instance.SetSpace(behind, BoardManager.PieceType.WPawn);
             var ghost = BoardManager.Instance.GetPieceFromSpace(behind);
@@ -50,7 +50,7 @@ public class Pawn : Piece {
             //ghost.GetComponent<Pawn>().AddGhostDispose();
             GameSessionManager.Instance.SummonGhostPawnServerRPC(Position);
         }
-    }
+    }*/
 
     /*public void AddGhostDispose() {
         NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().DisposeOfGhosts += TriggerGhostDispose;
