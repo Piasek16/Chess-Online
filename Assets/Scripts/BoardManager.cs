@@ -1,19 +1,14 @@
 using UnityEngine;
-using Unity.Netcode;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Collections;
 using System;
-using Unity.VisualScripting;
-using UnityEditor;
-using static UnityEditor.FilePathAttribute;
 
 public class BoardManager : MonoBehaviour {
-    [SerializeField] public Color whiteColor;
-    [SerializeField] public Color blackColor;
-    [SerializeField] public Color highlightOffsetColor;
-    [SerializeField] public Color whiteHighlightColor;
-    [SerializeField] public Color blackHighlightColor;
+    [SerializeField] private Color whiteColor;
+    [SerializeField] private Color blackColor;
+    [SerializeField] private Color highlightOffsetColor;
+    [SerializeField] private Color whiteHighlightColor;
+    [SerializeField] private Color blackHighlightColor;
     [SerializeField] Piece[] piecesPrefabs;
 
     Dictionary<int, Piece> pieces;
@@ -123,7 +118,10 @@ public class BoardManager : MonoBehaviour {
         if (!MoveManager.IsPositionValid(new Vector2Int(positionX, positionY))) return;
         if (p == PieceType.None) {
             var piece = GetPieceFromSpace(positionX, positionY);
-            if (piece != null) Destroy(piece.gameObject);
+            if (piece != null) {
+                piece.transform.parent = null;
+                Destroy(piece.gameObject);
+            }
             return;
         }
         var _ = Instantiate(pieces[(int)p], Vector3.zero, GameSessionManager.Instance.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
@@ -182,7 +180,16 @@ public class BoardManager : MonoBehaviour {
         return GetPieceFromSpace((int)space.transform.position.x, (int)space.transform.position.y);
     }
 
-    public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition, bool animate = false) {
+    public List<T> FindPiecesOfType<T>() where T : Piece {
+        List<T> pieces = new List<T>();
+        foreach (var tile in board) {
+            var piece = GetPieceFromSpace(tile);
+            if (piece is T target) pieces.Add(target);
+        }
+        return pieces;
+    }
+
+    public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
         var _oldPiece = GetPieceFromSpace(newPiecePosition);
         if (_oldPiece != null) {
             if ((_oldPiece as Pawn)?.IsGhost == true && GetPieceFromSpace(oldPiecePosition).GetType() == typeof(Pawn)) {
@@ -291,8 +298,12 @@ public class BoardManager : MonoBehaviour {
     }
 
     private void FindAndUpdateKings() {
-        kings = FindObjectsOfType<King>().OrderByDescending(x => x.ID).ToArray();
+        List<King> foundKings = FindPiecesOfType<King>();
+        kings = foundKings.OrderByDescending(x => x.ID).ToArray();
         LocalPlayerKing = GameSessionManager.Instance.LocalPlayer.PlayerColor ? kings[0] : kings[1];
+        Debug.Log("Found " + kings.Length + " kings");
+        Debug.Log("White king on " + kings[0].Position);
+        Debug.Log("Black king on " + kings[1].Position);
     }
 
     private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
@@ -338,29 +349,29 @@ public class BoardManager : MonoBehaviour {
         foreach (char c in fenCastlingRights) {
             switch (c) {
                 case 'K': {
-                        var rook = GetPieceFromSpace(7, 0);
-                        rook.FirstMove = true;
-                        kings[0].FirstMove = true;
-                        break;
-                    }
+                    var rook = GetPieceFromSpace(7, 0);
+                    rook.FirstMove = true;
+                    kings[0].FirstMove = true;
+                    break;
+                }
                 case 'k': {
-                        var rook = GetPieceFromSpace(7, 7);
-                        rook.FirstMove = true;
-                        kings[1].FirstMove = true;
-                        break;
-                    }
+                    var rook = GetPieceFromSpace(7, 7);
+                    rook.FirstMove = true;
+                    kings[1].FirstMove = true;
+                    break;
+                }
                 case 'Q': {
-                        var rook = GetPieceFromSpace(0, 0);
-                        rook.FirstMove = true;
-                        kings[0].FirstMove = true;
-                        break;
-                    }
+                    var rook = GetPieceFromSpace(0, 0);
+                    rook.FirstMove = true;
+                    kings[0].FirstMove = true;
+                    break;
+                }
                 case 'q': {
-                        var rook = GetPieceFromSpace(0, 7);
-                        rook.FirstMove = true;
-                        kings[1].FirstMove = true;
-                        break;
-                    }
+                    var rook = GetPieceFromSpace(0, 7);
+                    rook.FirstMove = true;
+                    kings[1].FirstMove = true;
+                    break;
+                }
             }
         }
     }
@@ -368,11 +379,11 @@ public class BoardManager : MonoBehaviour {
     public string GetFENBoardState() {
         string fenBoardState = string.Empty;
         var reversedFenPieces = fenPieces.ToDictionary(piece => piece.Value, piece => piece.Key);
-        for(int rank = 7; rank >= 0; rank--) {
+        for (int rank = 7; rank >= 0; rank--) {
             int emptySpaces = 0;
             for (int file = 0; file < 8; file++) {
                 var piece = GetPieceFromSpace(file, rank);
-                if (piece == null) {
+                if (piece == null || (piece as Pawn)?.IsGhost == true) {
                     emptySpaces++;
                 } else {
                     if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
@@ -380,6 +391,7 @@ public class BoardManager : MonoBehaviour {
                     fenBoardState += reversedFenPieces[(PieceType)piece.ID].ToString();
                 }
             }
+            if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
             if (rank != 0) fenBoardState += "/";
         }
         return fenBoardState;
@@ -388,7 +400,7 @@ public class BoardManager : MonoBehaviour {
     public string GetFENCastlingRights() {
         string fenCastlingRights = string.Empty;
         if (kings[0].FirstMove) {
-            if ((GetPieceFromSpace(7,0) as Rook)?.FirstMove == true) {
+            if ((GetPieceFromSpace(7, 0) as Rook)?.FirstMove == true) {
                 fenCastlingRights += "K";
             }
             if ((GetPieceFromSpace(0, 0) as Rook)?.FirstMove == true) {
@@ -423,7 +435,7 @@ public class BoardManager : MonoBehaviour {
     }
 
     private void SetPawnFirstMovePrivileges() {
-        for(int i = 0; i < 8; i++) {
+        for (int i = 0; i < 8; i++) {
             var pieceFirstRow = GetPieceFromSpace(i, 1);
             if (pieceFirstRow != null) pieceFirstRow.FirstMove = true;
             var pieceSecondRow = GetPieceFromSpace(i, 6);

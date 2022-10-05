@@ -80,7 +80,7 @@ public class CustomLogger : MonoBehaviour {
         TextWriter tw = new StreamWriter(gameSaveFilePath, true);
         tw.Write(GameSessionManager.Instance.FullmoveNumber + ". "
             + pieceType.ToString() + " from " + from + " to " + to);
-        if (GameSessionManager.Instance.WhitePlayersTurn.Value == false) tw.Write("\n");
+        //if (GameSessionManager.Instance.WhitePlayersTurn.Value == false) tw.Write("\n");
         tw.Close();
     }
 }
