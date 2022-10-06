@@ -82,12 +82,13 @@ public class GameSessionManager : NetworkBehaviour {
 			LoadStateFromFEN(FENGameState.Value.ToString());
 		} else {
 			Debug.Log("Board state in sync - updating variables");
-			var oldTurnStatus = WhitePlayersTurn;
+			Debug.LogWarning($"Temp status: {oldState.ToString().Split(" ")[1]}");
+			var oldTurnStatus = oldState.ToString().Split(" ")[1] == "w";
 			WhitePlayersTurn = newGameState[1] == "w";
 			EnPessantSquare = newGameState[3];
 			HalfmoveClock = int.Parse(newGameState[4]);
 			FullmoveNumber = int.Parse(newGameState[5]);
-			if (oldTurnStatus != WhitePlayersTurn) { //does not work on server - server changes the turn and invokes logic by itself
+			if (oldTurnStatus != WhitePlayersTurn) { //should now work on server - pending test
 				InvokeTurnChangeLogic();
 			}
 		}
@@ -99,6 +100,7 @@ public class GameSessionManager : NetworkBehaviour {
 		bool whitePlayerToMove = fenParameters[1] == "w";
 		BoardManager.Instance.LoadCastlingRightsFromFEN(fenParameters[2]);
 		if (fenParameters[3] != "-") {
+			if (EnPessantSquare != "-") DisposeOfGhostClientRPC(BoardManager.BoardLocationToVector2Int(EnPessantSquare));
 			Vector2Int parentPawnPosition = BoardManager.BoardLocationToVector2Int(fenParameters[3]);
 			parentPawnPosition.y += whitePlayerToMove ? -1 : 1;
 			if (IsServer) {
@@ -176,7 +178,6 @@ public class GameSessionManager : NetworkBehaviour {
 	private void EndTurnServerRPC() {
 		WhitePlayersTurn = !WhitePlayersTurn;
 		UpdateFENGameState();
-		InvokeTurnChangeLogic();
 	}
 
 	private void UpdateFENGameState() {
@@ -208,6 +209,7 @@ public class GameSessionManager : NetworkBehaviour {
 
 	public void SummonGhostPawnServer(Vector2Int parentPawnPosition, ServerRpcParams param = default) {
 		if (EnPessantSquare != "-") {
+			preventFirstEnPessantDispose = false;
 			DespawnEnPessantIfPossible();
 		}
 		bool senderColor = param.Receive.SenderClientId == WhitePlayerID.Value;
