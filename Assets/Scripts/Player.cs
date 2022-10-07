@@ -3,7 +3,6 @@ using Unity.Netcode;
 using Unity.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEngine.tvOS;
 
 public class Player : NetworkBehaviour {
 	public NetworkVariable<FixedString32Bytes> PlayerName = new NetworkVariable<FixedString32Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
@@ -66,11 +65,10 @@ public class Player : NetworkBehaviour {
 	void Start() {
 		//Called after OnNetworkSpawn
 		if (!IsOwner) return;
-		capturedFromPremovesContainer = new GameObject("PiecesCapturedFromPremovesContainer");
+		capturedFromPremovesContainer = new GameObject("PiecesCapturedFromPremovesContainer"); //Scheduled for cleanup
 		capturedFromPremovesContainer.transform.position = new Vector3(0, -2, 0);
 	}
 
-	//later
 	public void OnMyTurn() {
 		if (preMoves.Count > 0) {
 			var pieceToMove = BoardManager.Instance.GetPieceFromSpace(preMoves[0].from);
@@ -80,7 +78,7 @@ public class Player : NetworkBehaviour {
 				ReplayPreMoves();
 			} else {
 				preMoves.Clear();
-				Debug.LogWarning("Premove execution error - premoves have been reset.");
+				Debug.LogWarning("Premove execution error - premoves have been cancelled.");
 			}
 		}
 	}
@@ -119,12 +117,14 @@ public class Player : NetworkBehaviour {
 		if (!heldPieceLastPossibleMoves.Contains(attachedPiece.Position)) {
 			RestoreHeldPiecePosition();
 		} else if (!GameSessionManager.Instance.MyTurn) {
-			RegisterPreMove(heldPieceLastPosition, dropLocation);
 			RestoreHeldPiecePosition();
 			MovePiece(heldPieceLastPosition, dropLocation, false);
+			RegisterPreMove(heldPieceLastPosition, dropLocation);
+			if (CheckForPromotion(dropLocation)) StartPromotion(dropLocation);
 		} else {
 			RestoreHeldPiecePosition();
 			MovePiece(heldPieceLastPosition, dropLocation, true);
+			if (CheckForPromotion(dropLocation)) StartPromotion(dropLocation);
 			if (promotionLocation == null) GameSessionManager.Instance.EndMyTurn();
 		}
 		attachedPiece = null;
@@ -162,7 +162,7 @@ public class Player : NetworkBehaviour {
 		BoardManager.Instance.HighlightMove(from, to);
 		sbyte castlingResult = CheckForCastling(from, to);
 		if (castlingResult != 0) ExecuteCastle(from, to, castlingResult > 0, notifyServer);
-		if (CheckForPromotion(to)) StartPromotion(to);
+		//if (CheckForPromotion(to)) StartPromotion(to);
 		//if (notifyServer) { if (CheckForPromotion(to)) StartPromotion(to); } //TODO: Scheduled for later implementation
 	}
 
@@ -194,7 +194,7 @@ public class Player : NetworkBehaviour {
 	}
 
 	bool CheckForPromotion(Vector2Int movedToLocation) {
-		if ((attachedPiece as Pawn)?.CheckForPromotion() == true) {
+		if ((BoardManager.Instance.GetPieceFromSpace(movedToLocation) as Pawn)?.CheckForPromotion() == true) {
 			return true;
 		}
 		return false;
@@ -202,6 +202,12 @@ public class Player : NetworkBehaviour {
 
 	void StartPromotion(Vector2Int to) {
 		promotionLocation = to;
+		if (preMoves.Count > 0) {
+			PreMove last = preMoves[^1];
+			last.action = PreMoveSpecialAction.Promotion;
+			last.promotionPiece = BoardManager.PieceType.None;
+			preMoves[^1] = last;
+		}
 		Debug.Log("Choose a promotion by typing:");
 		Debug.Log("1 - Queen");
 		Debug.Log("2 - Rook");
@@ -210,13 +216,11 @@ public class Player : NetworkBehaviour {
 	}
 
 	void UpdatePreMovePromotionTarget(BoardManager.PieceType promotionTarget) {
-		for (int i = 0; i < preMoves.Count; i++) {
-			if (preMoves[i].action == PreMoveSpecialAction.Promotion && preMoves[i].promotionPiece == BoardManager.PieceType.None) {
-				var preMove = preMoves[i];
-				preMove.promotionPiece = promotionTarget;
-				preMoves[i] = preMove;
-			}
-		}
+		PreMove last = preMoves[^1];
+		if (last.action != PreMoveSpecialAction.Promotion || last.promotionPiece != BoardManager.PieceType.None) 
+			Debug.LogError("Action is not promotion or piece is not none - this should not be happening!");
+		last.promotionPiece = promotionTarget;
+		preMoves[^1] = last;
 		BoardManager.Instance.DestroyPiece(promotionLocation.Value);
 		BoardManager.Instance.SetSpace(promotionLocation.Value, promotionTarget);
 		promotionLocation = null;
@@ -230,19 +234,17 @@ public class Player : NetworkBehaviour {
 			if (Input.GetKeyDown(KeyCode.Alpha3)) UpdatePreMovePromotionTarget(PlayerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop);
 			if (Input.GetKeyDown(KeyCode.Alpha4)) UpdatePreMovePromotionTarget(PlayerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight);
 		} else {
-			if (Input.GetKeyDown(KeyCode.Alpha1)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WQueen : BoardManager.PieceType.BQueen);
-			if (Input.GetKeyDown(KeyCode.Alpha2)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WRook : BoardManager.PieceType.BRook);
-			if (Input.GetKeyDown(KeyCode.Alpha3)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop);
-			if (Input.GetKeyDown(KeyCode.Alpha4)) PromotePawnTo(PlayerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight);
+			if (Input.GetKeyDown(KeyCode.Alpha1)) { PromotePawnTo(PlayerColor ? BoardManager.PieceType.WQueen : BoardManager.PieceType.BQueen, promotionLocation.Value, true); promotionLocation = null; }
+			if (Input.GetKeyDown(KeyCode.Alpha2)) { PromotePawnTo(PlayerColor ? BoardManager.PieceType.WRook : BoardManager.PieceType.BRook, promotionLocation.Value, true); promotionLocation = null; }
+			if (Input.GetKeyDown(KeyCode.Alpha3)) { PromotePawnTo(PlayerColor ? BoardManager.PieceType.WBishop : BoardManager.PieceType.BBishop, promotionLocation.Value, true); promotionLocation = null; }
+			if (Input.GetKeyDown(KeyCode.Alpha4)) { PromotePawnTo(PlayerColor ? BoardManager.PieceType.WKnight : BoardManager.PieceType.BKnight, promotionLocation.Value, true); promotionLocation = null; }
 		}
 	}
 
-	void PromotePawnTo(BoardManager.PieceType p) {
-		if (promotionLocation == null) return;
-		BoardManager.Instance.DestroyPiece(promotionLocation.Value);
-		BoardManager.Instance.SetSpace(promotionLocation.Value, p);
-		GameSessionManager.Instance.PromotePawnToServerRPC(p, promotionLocation.Value);
-		promotionLocation = null;
+	void PromotePawnTo(BoardManager.PieceType p, Vector2Int pawnLocation, bool notifyServer) {
+		BoardManager.Instance.DestroyPiece(pawnLocation);
+		BoardManager.Instance.SetSpace(pawnLocation, p);
+		if (notifyServer) GameSessionManager.Instance.PromotePawnToServerRPC(p, pawnLocation);
 	}
 
 	enum PreMoveSpecialAction : sbyte {
@@ -262,7 +264,9 @@ public class Player : NetworkBehaviour {
 	void ExecuteFirstPreMove() {
 		PreMove preMove = preMoves[0];
 		MovePiece(preMove.from, preMove.to, true);
-		if (preMove.action == PreMoveSpecialAction.Promotion && preMove.promotionPiece != BoardManager.PieceType.None) PromotePawnTo(preMove.promotionPiece);
+		if (preMove.action == PreMoveSpecialAction.Promotion && preMove.promotionPiece != BoardManager.PieceType.None) {
+			PromotePawnTo(preMove.promotionPiece, preMove.to, true);	
+		}
 		Debug.Log($"[{PlayerName.Value}] Replayed The first premove from: {preMove.from} to: {preMove.to}");
 		preMoves.RemoveAt(0);
 	}
@@ -271,6 +275,9 @@ public class Player : NetworkBehaviour {
 		Debug.Log($"[{PlayerName.Value}] Replaying the rest of saved premoves...");
 		foreach (var preMove in preMoves) {
 			MovePiece(preMove.from, preMove.to, false);
+			if (preMove.action == PreMoveSpecialAction.Promotion && preMove.promotionPiece != BoardManager.PieceType.None) {
+				PromotePawnTo(preMove.promotionPiece, preMove.to, false);
+			}
 			Debug.Log($"[{PlayerName.Value}] Replayed premove from: {preMove.from} to: {preMove.to}");
 		}
 	}
