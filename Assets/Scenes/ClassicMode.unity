@@ -717,8 +717,6 @@ MonoBehaviour:
     m_InternalValue: 0
   BlackPlayerID:
     m_InternalValue: 0
-  WhitePlayersTurn:
-    m_InternalValue: 1
   FENGameState:
     m_InternalValue:
       utf8LengthInBytes: 0
@@ -858,10 +856,12 @@ MonoBehaviour:
         byte0125: 0
   MyTurn: 0
   GameStarted: 0
+  WhitePlayersTurn: 1
   EnPessantSquare: '-'
   HalfmoveClock: 0
   FullmoveNumber: 1
-  localPlayer: {fileID: 0}
+  LocalPlayer: {fileID: 0}
+  OpponentPlayer: {fileID: 0}
   ClassicPlayerObject: {fileID: 2123819506533109091, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
   fenStartingPosition: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 --- !u!4 &1453127489
@@ -1423,11 +1423,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ca0393f664bc0c429b8c4ac275b95c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  whiteColor: {r: 0.90588236, g: 0.8039216, b: 0.5411765, a: 0}
-  blackColor: {r: 0.8679245, g: 0.6627451, b: 0.34117648, a: 0}
-  highlightOffsetColor: {r: 0.39215687, g: 0, b: 0.39215687, a: 0}
-  whiteHighlightColor: {r: 0.5137255, g: 0.80392164, b: 0.14901961, a: 0}
-  blackHighlightColor: {r: 0.4745098, g: 0.6627451, b: 0, a: 0}
   piecesPrefabs:
   - {fileID: 3965885595701310013, guid: 473400df95452d944af3cbdcb29be8c8, type: 3}
   - {fileID: -1417802348366178195, guid: 078a6b0c7f318e241b0c91d0e213f109, type: 3}
@@ -1441,8 +1436,8 @@ MonoBehaviour:
   - {fileID: 5741285808954775336, guid: 4900abda6d243ed4c9b4ab8e2ab1ba97, type: 3}
   - {fileID: 6042540757240198209, guid: c8afa3f90d14c994899c9ffacf20c94e, type: 3}
   - {fileID: -8303279025032983307, guid: c1d24cfdefa0fba4a9882f5658c472f0, type: 3}
-  localPlayerColor: 0
-  localPlayerKing: {fileID: 0}
+  BoardTheme: {fileID: 11400000, guid: 92810a2bb13a6e545872609fb087ec84, type: 2}
+  LocalPlayerKing: {fileID: 0}
 --- !u!114 &2144791411
 MonoBehaviour:
   m_ObjectHideFlags: 0

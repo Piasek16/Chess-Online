@@ -208,7 +208,7 @@ public class GameSessionManager : NetworkBehaviour {
 		SynchronizeFENGameState();
 		BoardManager.Instance.MovePiece(oldPiecePosition, newPiecePosition);
 		BoardManager.Instance.GetPieceFromSpace(newPiecePosition).FirstMove = false;
-		BoardManager.Instance.HighlightMove(oldPiecePosition, newPiecePosition);
+		BoardManager.Instance.HighlightMove(new Move(oldPiecePosition, newPiecePosition));
 		Debug.Log("[ClientRPC] " + "Moved " + BoardManager.Instance.GetPieceFromSpace(newPiecePosition).name + " from " + oldPiecePosition + " to " + newPiecePosition);
 	}
 

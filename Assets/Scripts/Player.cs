@@ -159,7 +159,7 @@ public class Player : NetworkBehaviour {
 		BoardManager.Instance.MovePiece(from, to);
 		BoardManager.Instance.GetPieceFromSpace(to).FirstMove = false;
 		if (notifyServer) GameSessionManager.Instance.MovePieceServerRPC(from, to);
-		BoardManager.Instance.HighlightMove(from, to);
+		BoardManager.Instance.HighlightMove(new Move(from, to));
 		sbyte castlingResult = CheckForCastling(from, to);
 		if (castlingResult != 0) ExecuteCastle(from, to, castlingResult > 0, notifyServer);
 		//if (CheckForPromotion(to)) StartPromotion(to);
