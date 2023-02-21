@@ -13,6 +13,7 @@ public class BoardManager : MonoBehaviour {
 	private Dictionary<int, Piece> pieces;
 	private King[] kings;
 	private static readonly string files = "abcdefgh"; //file is abcdefgh rank is 1-8
+	private ClassicGameLogicManager gameLogicManager;
 
 	public BoardTheme BoardTheme;
 	public GameObject[,] board = new GameObject[8, 8];
@@ -45,6 +46,10 @@ public class BoardManager : MonoBehaviour {
 			pieces.Add(piece.ID, piece);
 		}
 		GenerateBoard();
+	}
+
+	void Start() {
+		gameLogicManager = ClassicGameLogicManager.Instance;
 	}
 
 	void GenerateBoard() {
@@ -99,7 +104,7 @@ public class BoardManager : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// Sets the space at the given position to the given piece type.
+	/// Sets the space at the given position to the given piece type. If the piece type is "None", the current piece is detached from the board and destroyed, otherwise a piece is only added.
 	/// </summary>
 	/// <param name="positionX">Horizontal space position</param>
 	/// <param name="positionY">Vertical space position</param>
@@ -111,10 +116,7 @@ public class BoardManager : MonoBehaviour {
 		}
 		if (p == PieceType.None) {
 			var piece = GetPieceFromSpace(positionX, positionY);
-			if (piece != null) {
-				piece.transform.parent = null;
-				Destroy(piece.gameObject);
-			}
+			DestroyPiece(piece);
 			return;
 		}
 		var newPiece = Instantiate(pieces[(int)p], Vector3.zero, GameSessionManager.Instance.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
@@ -168,23 +170,17 @@ public class BoardManager : MonoBehaviour {
 		return pieces;
 	}
 
-	// TODO: Move Execution
-
 	/// <summary>
 	/// Executes a <see cref="Move"/> on the board. That is to say, it moves the piece from the origin to the destination,
 	/// while calling the game logic manager to handle the resulting changes.
 	/// </summary>
 	/// <param name="move">Move to execute</param>
-	public void ExecuteMove(Move move) {
+	public void ExecuteMove(Move move, bool executeLogic = true) {
+		if (executeLogic) gameLogicManager.BeforeMove(move);
 		var movingPiece = GetPieceFromSpace(move.PositionOrigin);
-		// var movingPiece = move.MovingPiece;
-
-		// ClassicGameLogicManager call the before move while passing the piece
-		
 		movingPiece.transform.parent = board[move.PositionDestination.x, move.PositionDestination.y].transform;
 		movingPiece.transform.localPosition = Vector3.zero;
-
-		// TODO: Call game logic manager after move function
+		if (executeLogic) gameLogicManager.AfterMove(move);
 	}
 
 	#region OldMovePiece
@@ -203,21 +199,29 @@ public class BoardManager : MonoBehaviour {
 		movedPiece.transform.localPosition = Vector3.zero;
 		//Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
 	}
+	#endregion OldMovePiece
 
 	public void SummonGhostPawn(Vector2Int parentPawnPosition, Vector2Int ghostLocation) {
 		SetSpace(ghostLocation, PieceType.WPawn);
-		var ghost = GetPieceFromSpace(ghostLocation);
-		ghost.GetComponent<Pawn>().InitGhost(parentPawnPosition);
+		Pawn ghost = GetPieceFromSpace(ghostLocation) as Pawn;
+		ghost.InitGhost(parentPawnPosition);
 	}
 
-	public void DestroyPiece(Vector2Int position) {
+	public void DestroyPieceAt(Vector2Int position) {
 		var piece = GetPieceFromSpace(position);
+		DestroyPiece(piece);
+	}
+
+	/// <summary>
+	/// Detaches the given piece from the game board and destroys it.
+	/// </summary>
+	/// <param name="piece">Piece to destroy</param>
+	public void DestroyPiece(Piece piece) {
 		if (piece != null) {
 			piece.transform.parent = null;
 			Destroy(piece.gameObject);
 		}
 	}
-	#endregion OldMovePiece
 
 	Move currentlyHighlightedMove;
 	/// <summary>
@@ -300,7 +304,7 @@ public class BoardManager : MonoBehaviour {
 				bool firstMoveStatus = pieceData[^1] == '*';
 				if (firstMoveStatus) pieceData = pieceData.TrimEnd('*');
 				SetSpace((GameObject)boardEnumerator.Current, (PieceType)int.Parse(pieceData));
-				if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMove = false;
+				if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMove = false; //this should be removed (first move is set in game logic manager)
 			}
 		}
 	}
@@ -404,6 +408,14 @@ public class BoardManager : MonoBehaviour {
 		}
 	}
 
+	public void LoadEnPassantTargetFromFEN(string fenEnPassantTarget, bool isWhiteTurn) {
+		if (fenEnPassantTarget == null || fenEnPassantTarget == "-") return;
+		Debug.Log("Loading en passant target: " + fenEnPassantTarget);
+		var enPassantTarget = BoardLocationToVector2Int(fenEnPassantTarget);
+		var parentPawnPosition = new Vector2Int(enPassantTarget.x, enPassantTarget.y + (isWhiteTurn ? -1 : 1));
+		SummonGhostPawn(parentPawnPosition, enPassantTarget);
+	}
+
 	/// <summary>
 	/// Saves the board state to a fen format
 	/// </summary>
@@ -460,6 +472,17 @@ public class BoardManager : MonoBehaviour {
 		if (string.IsNullOrEmpty(fenCastlingRights)) fenCastlingRights = "-";
 		return fenCastlingRights;
 	}
+
+	/// <summary>
+	/// Saves the en passant target from the board to a fen format.
+	/// </summary>
+	/// <returns>Square target of EnPassant</returns>
+	public string GetFENEnPassantTarget() {
+		foreach(var pawn in FindPiecesOfType<Pawn>()) {
+			if (pawn.IsGhost) return Vector2IntToBoardLocation(pawn.Position);
+		}
+		return "-";
+	}
 	#endregion FENState
 
 	/// <summary>
@@ -469,7 +492,7 @@ public class BoardManager : MonoBehaviour {
 	/// <returns>A 2 character string with the location in chess format</returns>
 	/// <exception cref="Exception">Gets thrown if a given location is out of board bounds</exception>
 	public static string Vector2IntToBoardLocation(Vector2Int vector2Int) {
-		if (vector2Int.x < 0 || vector2Int.x > 7 || vector2Int.y < 0 || vector2Int.y > 7) 
+		if (vector2Int.x < 0 || vector2Int.x > 7 || vector2Int.y < 0 || vector2Int.y > 7)
 			throw new Exception("Invalid board location was passed to location converter! (Position parameter out of bounds)");
 		string location = string.Empty;
 		location += files[vector2Int.x];
@@ -484,7 +507,7 @@ public class BoardManager : MonoBehaviour {
 	/// <returns>Location on the board as a <see cref="Vector2Int"/></returns>
 	/// <exception cref="Exception">Gets thrown if invalid board location was passed (length was above 2 characters) or a given location is out of board bounds</exception>
 	public static Vector2Int BoardLocationToVector2Int(string boardLocation) {
-		if (boardLocation.Length > 2) 
+		if (boardLocation.Length > 2)
 			throw new Exception("Invalid board location was passed to location converter!");
 		Vector2Int vector2Int = new Vector2Int();
 		vector2Int.x = files.IndexOf(boardLocation[0]);
@@ -492,5 +515,14 @@ public class BoardManager : MonoBehaviour {
 		if (vector2Int.x < 0 || vector2Int.x > 7 || vector2Int.y < 0 || vector2Int.y > 7)
 			throw new Exception("Invalid board location was passed to location converter! (Position parameter out of bounds)");
 		return vector2Int;
+	}
+
+	/// <summary>
+	/// Checks if a given piece is the same color as the local player.
+	/// </summary>
+	/// <param name="piece">Piece to check</param>
+	/// <returns>True if piece is of the same color, false otherwise</returns>
+	public bool IsPieceMyColor(Piece piece) {
+		return piece.ID * (GameSessionManager.Instance.LocalPlayer.PlayerColor ? 1 : -1) > 0;
 	}
 }

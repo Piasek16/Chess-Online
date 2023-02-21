@@ -189,10 +189,11 @@ public class MoveManager : MonoBehaviour {
     public bool IsMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
         var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
         if (oldPiece != null) oldPiece.transform.parent = null;
-        BoardManager.Instance.MovePiece(oldPosition, newPosition);
+		Move move = new(oldPosition, newPosition);
+        BoardManager.Instance.ExecuteMove(move, false);
         var check = IsKingInCheck();
-        BoardManager.Instance.MovePiece(newPosition, oldPosition);
-        if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
+		BoardManager.Instance.ExecuteMove(move.Reverse, false);
+		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
         return !check;
     }
 }

@@ -75,12 +75,4 @@ public class CustomLogger : MonoBehaviour {
         tw.WriteLine("Black Player Name: " + blackPlayer);
         tw.Close();
     }
-
-    public void LogMove(Vector2Int from, Vector2Int to, BoardManager.PieceType pieceType) {
-        TextWriter tw = new StreamWriter(gameSaveFilePath, true);
-        tw.Write(GameSessionManager.Instance.FullmoveNumber + ". "
-            + pieceType.ToString() + " from " + from + " to " + to);
-        //if (GameSessionManager.Instance.WhitePlayersTurn.Value == false) tw.Write("\n");
-        tw.Close();
-    }
 }

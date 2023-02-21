@@ -6,11 +6,16 @@ public readonly struct Move {
 	public readonly Vector2Int PositionDestination;
 	// In consideration
 	// public readonly Piece MovingPiece;
+	public Move Reverse => new(PositionDestination, PositionOrigin);
 
 	public Move(Vector2Int positionOrigin, Vector2Int positionDestination) {
 		PositionOrigin = positionOrigin;
 		PositionDestination = positionDestination;
 		// MovingPiece = BoardManager.Instance.GetPieceFromSpace(positionOrigin);
+	}
+
+	public override string ToString() {
+		return $"Move from {PositionOrigin} to {PositionDestination}, probably moved piece (from destination): {BoardManager.Instance.GetPieceFromSpace(PositionDestination)}";
 	}
 }
 
