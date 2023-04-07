@@ -1,18 +1,19 @@
+#if UNITY_EDITOR
 using ParrelSync;
 using Unity.Netcode;
+#endif
 using UnityEngine;
 
 public class GameTestingManager : MonoBehaviour {
-#if UNITY_EDITOR
     public static GameTestingManager Instance { get; private set; }
     void Awake() {
         if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
     }
+    public string TestingUsername = "PiasekTester";
+#if UNITY_EDITOR
 
-    string testingOriginalUsername = "PiasekHost";
+	string testingOriginalUsername = "PiasekHost";
     string testingCloneUsername = "PiasekClient";
-    public string TestingUsername;
-
     void Start() {
         if (ClonesManager.IsClone()) {
             TestingUsername = testingCloneUsername;

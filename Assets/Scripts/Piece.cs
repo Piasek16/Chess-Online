@@ -36,7 +36,7 @@ public class Piece : MonoBehaviour {
 	protected void RemoveFriendlyPiecesFromMoves() {
 		possibleMoves.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount > 0
 		&& BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * ID > 0
-		&& (BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>() as Pawn)?.IsGhost == false);
+		&& !((BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>() as Pawn)?.IsGhost == true));
 	}
 
 	protected void RemoveIllegalMoves() {

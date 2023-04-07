@@ -3,6 +3,7 @@ using UnityEngine;
 public class ClassicGameLogicManager : MonoBehaviour {
 	public static ClassicGameLogicManager Instance { get; private set; }
 	private BoardManager boardManager;
+	private GameSessionManager gameSessionManager;
 
 	void Awake() {
 		if (Instance != null && Instance != this)
@@ -13,6 +14,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 
 	void Start() {
 		boardManager = BoardManager.Instance;
+		gameSessionManager = GameSessionManager.Instance;
 	}
 
 	private Piece movingPiece;
@@ -29,11 +31,18 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	}
 
 	public void AfterMove(Move move) {
+		var enPassantTarget = gameSessionManager.OfficialFENGameState.EnPassantTarget;
+		if (enPassantTarget != "-") { // En pessant ghost removal check
+			if (boardManager.GetPieceFromSpace(BoardManager.BoardLocationToVector2Int(enPassantTarget)) is Pawn pawnGhost) {
+				pawnGhost.DisposeOfGhost();
+			}
+		}
 		if (movingPiece is Pawn) {
 			bool isPieceWhite = movingPiece.ID > 0;
 			if (Vector2Int.Distance(move.PositionOrigin, move.PositionDestination) == 2) { // En pessant generation check
 				Vector2Int ghostLocation = new(movingPiece.Position.x, movingPiece.Position.y + (isPieceWhite ? -1 : 1));
 				boardManager.SummonGhostPawn(movingPiece.Position, ghostLocation);
+				gameSessionManager.OfficialFENGameState.EnPassantTarget = BoardManager.Vector2IntToBoardLocation(ghostLocation);
 			}
 			if (movingPiece.Position.y == (isPieceWhite ? 7 : 0)) {
 				// TODO: Send local player prompt to choose promotion piece (potentially await or handle choosen piece in another method)

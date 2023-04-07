@@ -19,6 +19,8 @@ public class FENGameState {
 		FullMoveNumber = int.Parse(fenParts[5]);
 	}
 
+	public FENGameState() {}
+
 	public override string ToString() {
 		return $"{BoardState} {ActiveColor} {CastlingAvailability} {EnPassantTarget} {HalfMoveClock} {FullMoveNumber}";
 	}
@@ -27,5 +29,16 @@ public class FENGameState {
 
 	public void SetActiveColor(bool isWhiteTurn) {
 		ActiveColor = isWhiteTurn ? "w" : "b";
+	}
+
+	public static FENGameState CollectFENState() {
+		FENGameState state = new();
+		state.BoardState = BoardManager.Instance.GetFENBoardState();
+		state.CastlingAvailability = BoardManager.Instance.GetFENCastlingRights();
+		state.EnPassantTarget = BoardManager.Instance.GetFENEnPassantTarget();
+		state.HalfMoveClock = GameSessionManager.Instance.OfficialFENGameState.HalfMoveClock;
+		state.FullMoveNumber = GameSessionManager.Instance.OfficialFENGameState.FullMoveNumber;
+		state.SetActiveColor(GameSessionManager.Instance.OfficialFENGameState.IsWhiteTurn);
+		return state;
 	}
 }

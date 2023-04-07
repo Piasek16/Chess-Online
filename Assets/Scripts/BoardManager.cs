@@ -13,7 +13,9 @@ public class BoardManager : MonoBehaviour {
 	private Dictionary<int, Piece> pieces;
 	private King[] kings;
 	private static readonly string files = "abcdefgh"; //file is abcdefgh rank is 1-8
+	private GameSessionManager gameSessionManager;
 	private ClassicGameLogicManager gameLogicManager;
+	private PiecePool piecePool;
 
 	public BoardTheme BoardTheme;
 	public GameObject[,] board = new GameObject[8, 8];
@@ -45,10 +47,12 @@ public class BoardManager : MonoBehaviour {
 		foreach (Piece piece in piecesPrefabs) {
 			pieces.Add(piece.ID, piece);
 		}
+		piecePool = new PiecePool();
 		GenerateBoard();
 	}
 
 	void Start() {
+		gameSessionManager = GameSessionManager.Instance;
 		gameLogicManager = ClassicGameLogicManager.Instance;
 	}
 
@@ -119,7 +123,9 @@ public class BoardManager : MonoBehaviour {
 			DestroyPiece(piece);
 			return;
 		}
-		var newPiece = Instantiate(pieces[(int)p], Vector3.zero, GameSessionManager.Instance.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180), board[positionX, positionY].transform);
+		var newPiece = piecePool.GetPiece(p);
+		newPiece.transform.parent = board[positionX, positionY].transform;
+		newPiece.transform.rotation = gameSessionManager.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 		newPiece.transform.localPosition = Vector3.zero;
 	}
 
@@ -202,8 +208,9 @@ public class BoardManager : MonoBehaviour {
 	#endregion OldMovePiece
 
 	public void SummonGhostPawn(Vector2Int parentPawnPosition, Vector2Int ghostLocation) {
-		SetSpace(ghostLocation, PieceType.WPawn);
-		Pawn ghost = GetPieceFromSpace(ghostLocation) as Pawn;
+		Pawn ghost = piecePool.GetGhost();
+		ghost.transform.parent = board[ghostLocation.x, ghostLocation.y].transform;
+		ghost.transform.localPosition = Vector3.zero;
 		ghost.InitGhost(parentPawnPosition);
 	}
 
@@ -219,7 +226,7 @@ public class BoardManager : MonoBehaviour {
 	public void DestroyPiece(Piece piece) {
 		if (piece != null) {
 			piece.transform.parent = null;
-			Destroy(piece.gameObject);
+			piecePool.ReturnPiece(piece);
 		}
 	}
 
@@ -354,7 +361,7 @@ public class BoardManager : MonoBehaviour {
 	private void FindAndUpdateKings() {
 		List<King> foundKings = FindPiecesOfType<King>();
 		kings = foundKings.OrderByDescending(x => x.ID).ToArray();
-		LocalPlayerKing = GameSessionManager.Instance.LocalPlayer.PlayerColor ? kings[0] : kings[1];
+		LocalPlayerKing = gameSessionManager.LocalPlayer.PlayerColor ? kings[0] : kings[1];
 		Debug.Log("Found " + kings.Length + " kings");
 		Debug.Log("White king on " + kings[0].Position);
 		Debug.Log("Black king on " + kings[1].Position);
@@ -408,12 +415,13 @@ public class BoardManager : MonoBehaviour {
 		}
 	}
 
-	public void LoadEnPassantTargetFromFEN(string fenEnPassantTarget, bool isWhiteTurn) {
+	public void LoadEnPassantTargetFromFEN(string fenEnPassantTarget) {
 		if (fenEnPassantTarget == null || fenEnPassantTarget == "-") return;
 		Debug.Log("Loading en passant target: " + fenEnPassantTarget);
 		var enPassantTarget = BoardLocationToVector2Int(fenEnPassantTarget);
-		var parentPawnPosition = new Vector2Int(enPassantTarget.x, enPassantTarget.y + (isWhiteTurn ? -1 : 1));
-		SummonGhostPawn(parentPawnPosition, enPassantTarget);
+		var possibleParentLocation = new Vector2Int(enPassantTarget.x, enPassantTarget.y + 1);
+		if (GetPieceFromSpace(possibleParentLocation) == null) possibleParentLocation.y -= 2;
+		SummonGhostPawn(possibleParentLocation, enPassantTarget);
 	}
 
 	/// <summary>
@@ -523,6 +531,84 @@ public class BoardManager : MonoBehaviour {
 	/// <param name="piece">Piece to check</param>
 	/// <returns>True if piece is of the same color, false otherwise</returns>
 	public bool IsPieceMyColor(Piece piece) {
-		return piece.ID * (GameSessionManager.Instance.LocalPlayer.PlayerColor ? 1 : -1) > 0;
+		return piece.ID * (gameSessionManager.LocalPlayer.PlayerColor ? 1 : -1) > 0;
+	}
+
+	public void ReturnGhost(Pawn ghost) {
+		piecePool.ReturnGhost(ghost);
+	}
+
+	/// <summary>
+	/// Nestes class for managing the piece pool.
+	/// </summary>
+	private class PiecePool {
+		private readonly Dictionary<PieceType, Queue<Piece>> pool = new();
+		private readonly GameObject poolObject;
+		private readonly Vector3Int poolPosition = new(-1, -1, -1);
+		private Pawn ghostPawn;
+
+		public PiecePool() {
+			poolObject = new GameObject("PiecePool");
+			poolObject.transform.parent = Instance.transform;
+			poolObject.transform.position = poolPosition;
+			foreach (var piece in Instance.piecesPrefabs) {
+				pool.Add((PieceType)piece.ID, new Queue<Piece>());
+			}
+			// Create ghost pawn
+			Pawn ghost = Instantiate(Instance.pieces[(int)PieceType.WPawn], poolPosition, Quaternion.identity) as Pawn;
+			Destroy(ghost.GetComponent<SpriteRenderer>());
+			ghost.transform.parent = poolObject.transform;
+			ghost.gameObject.SetActive(false);
+			ghostPawn = ghost;
+		}
+
+		/// <summary>
+		/// Gets a piece from the pool or creates a new one if the pool is empty.
+		/// </summary>
+		/// <param name="pieceType">Type of piece to receive</param>
+		/// <returns>A reference to the requested piece</returns>
+		public Piece GetPiece(PieceType pieceType) {
+			if (pool[pieceType].Count > 0) {
+				Piece piece = pool[pieceType].Dequeue();
+				piece.transform.parent = null;
+				piece.gameObject.SetActive(true);
+				return piece;
+			} else {
+				Piece newPiece = Instantiate(Instance.pieces[(int)pieceType], poolPosition, Quaternion.identity);
+				return newPiece;
+			}
+		}
+
+		/// <summary>
+		/// Returns a piece to the pool.
+		/// </summary>
+		/// <param name="piece">Piece to return</param>
+		public void ReturnPiece(Piece piece) {
+			if (piece is Pawn pawn && pawn.IsGhost) {
+				ReturnGhost(pawn);
+				return;
+			}
+			piece.gameObject.SetActive(false);
+			piece.transform.parent = poolObject.transform;
+			piece.transform.position = poolPosition;
+			pool[(PieceType)piece.ID].Enqueue(piece);
+		}
+
+		public Pawn GetGhost() {
+			if (ghostPawn == null)
+				throw new Exception("Ghost is already in use! - Return the used ghost before requesting again!");
+			var ghost = ghostPawn;
+			ghost.gameObject.SetActive(true);
+			ghost.transform.parent = null;
+			ghostPawn = null;
+			return ghost;
+		}
+
+		public void ReturnGhost(Pawn ghost) {
+			ghost.gameObject.SetActive(false);
+			ghost.transform.parent = poolObject.transform;
+			ghost.transform.position = poolPosition;
+			ghostPawn = ghost;
+		}
 	}
 }
