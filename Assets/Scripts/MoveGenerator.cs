@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MoveManager : MonoBehaviour {
+public class MoveGenerator : MonoBehaviour {
 
-    public static MoveManager Instance { get; private set; }
+    public static MoveGenerator Instance { get; private set; }
     void Awake() {
         if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
     }

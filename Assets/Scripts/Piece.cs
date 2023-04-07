@@ -13,23 +13,22 @@ public class Piece : MonoBehaviour {
 
 	public bool FirstMove { get; set; } = false;
 
-	private Dictionary<GameObject, Color> spacesHighlighted;
+	private List<GameObject> spacesHighlighted;
 
 	public void HighlightPossibleMoves() {
 		if (PossibleMoves.Count == 0) return;
-		spacesHighlighted = new Dictionary<GameObject, Color>();
+		spacesHighlighted = new();
 		foreach (var move in PossibleMoves) {
 			var moveSpace = BoardManager.Instance.board[move.x, move.y];
-			Color spaceColor = moveSpace.GetComponent<MeshRenderer>().material.color;
-			spacesHighlighted.Add(moveSpace, spaceColor);
+			spacesHighlighted.Add(moveSpace);
 			BoardManager.Instance.HighlightTile(moveSpace);
 		}
 	}
 
 	public void ResetPossibleMovesHighlight() {
 		if (spacesHighlighted == null) return;
-		foreach (var space in spacesHighlighted.Keys) {
-			space.GetComponent<MeshRenderer>().material.color = spacesHighlighted[space];
+		foreach (var space in spacesHighlighted) {
+			BoardManager.Instance.RestoreTileColor(space);
 		}
 	}
 
@@ -42,7 +41,7 @@ public class Piece : MonoBehaviour {
 	protected void RemoveIllegalMoves() {
 		possibleMoves.RemoveAll(move => {
 			if ((NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor ? 1 : -1) * ID > 0)
-				return !MoveManager.Instance.IsMoveLegal(Position, move);
+				return !MoveGenerator.Instance.IsMoveLegal(Position, move);
 			return false;
 		});
 	}

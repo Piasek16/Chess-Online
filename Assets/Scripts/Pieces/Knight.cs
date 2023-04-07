@@ -7,7 +7,7 @@ public class Knight : Piece {
     public override List<Vector2Int> PossibleMoves {
         get {
             possibleMoves.Clear();
-            possibleMoves.AddRange(MoveManager.Instance.GetKnightMoves(Position));
+            possibleMoves.AddRange(MoveGenerator.Instance.GetKnightMoves(Position));
             RemoveFriendlyPiecesFromMoves();
             RemoveIllegalMoves();
             return possibleMoves;

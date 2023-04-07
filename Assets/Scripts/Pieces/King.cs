@@ -7,7 +7,7 @@ public class King : Piece {
     public override List<Vector2Int> PossibleMoves {
         get {
             possibleMoves.Clear();
-            possibleMoves.AddRange(MoveManager.Instance.GetKingMoves(Position));
+            possibleMoves.AddRange(MoveGenerator.Instance.GetKingMoves(Position));
             possibleMoves.AddRange(GetCastlingMoves());
             RemoveFriendlyPiecesFromMoves();
             RemoveIllegalMoves();
@@ -22,20 +22,20 @@ public class King : Piece {
         var rightRook = BoardManager.Instance.GetPieceFromSpace(new Vector2Int(7, Position.y)) as Rook;
         if (leftRook != null && leftRook.FirstMove 
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 1, Position.y)) == null
-            && MoveManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 1, Position.y))
+            && MoveGenerator.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 1, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 2, Position.y)) == null
-            && MoveManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 2, Position.y))
+            && MoveGenerator.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 2, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 3, Position.y)) == null
-            && MoveManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 3, Position.y))) {
+            && MoveGenerator.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 3, Position.y))) {
             var _newPosition = new Vector2Int(Position.x - 2, Position.y);
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(_newPosition);
             if (_oldPiece == null) moves.Add(_newPosition);
         }
         if (rightRook != null && rightRook.FirstMove 
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x + 1, Position.y)) == null
-            && MoveManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 1, Position.y))
+            && MoveGenerator.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 1, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x + 2, Position.y)) == null
-            && MoveManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 2, Position.y))) {
+            && MoveGenerator.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 2, Position.y))) {
             var _newPosition = new Vector2Int(Position.x + 2, Position.y);
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(_newPosition);
             if (_oldPiece == null) moves.Add(_newPosition);

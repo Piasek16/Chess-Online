@@ -103,7 +103,7 @@ public class GameSessionManager : NetworkBehaviour {
 	private void OnMyTurn() {
 		var numberOfLegalMoves = gameLogicManager.NumberOfLegalMoves;
 		Debug.Log($"No of legal moves: {numberOfLegalMoves}");
-		if (MoveManager.Instance.IsKingInCheck() && numberOfLegalMoves == 0) {
+		if (MoveGenerator.Instance.IsKingInCheck() && numberOfLegalMoves == 0) {
 			EndGameRequestServerRPC(true); //checkmate
 		} else if (numberOfLegalMoves == 0) {
 			EndGameRequestServerRPC(false); //stalemate
@@ -113,7 +113,7 @@ public class GameSessionManager : NetworkBehaviour {
 	}
 
 	private void DisplayCheckInfo() {
-		if (MoveManager.Instance.IsKingInCheck()) {
+		if (MoveGenerator.Instance.IsKingInCheck()) {
 			Debug.Log("My king is in check!");
 			//Play check sound from sound manager
 		}

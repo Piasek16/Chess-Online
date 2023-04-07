@@ -114,7 +114,7 @@ public class BoardManager : MonoBehaviour {
 	/// <param name="positionY">Vertical space position</param>
 	/// <param name="p">Enum describing the piece type to set</param>
 	public void SetSpace(int positionX, int positionY, PieceType p) {
-		if (!MoveManager.IsPositionValid(new Vector2Int(positionX, positionY))) {
+		if (!MoveGenerator.IsPositionValid(new Vector2Int(positionX, positionY))) {
 			Debug.LogWarning($"Tried to set an invalid space! Supplied location: X:{positionX}, Y:{positionY}");
 			return;
 		}
@@ -136,7 +136,7 @@ public class BoardManager : MonoBehaviour {
 	/// <param name="positionY">Vertical space position</param>
 	/// <returns>A reference to a piece at the chosen position</returns>
 	public Piece GetPieceFromSpace(int positionX, int positionY) {
-		if (!MoveManager.IsPositionValid(new Vector2Int(positionX, positionY))) {
+		if (!MoveGenerator.IsPositionValid(new Vector2Int(positionX, positionY))) {
 			Debug.LogWarning("Player tried to get a piece from a non existent position " + new Vector2Int(positionX, positionY));
 			return null;
 		}
@@ -249,6 +249,10 @@ public class BoardManager : MonoBehaviour {
 	/// <param name="tileLocation">Position of the tile</param>
 	public void RestoreTileColor(Vector2Int tileLocation) {
 		SetTileColor(tileLocation, BoardTheme.WhiteColor, BoardTheme.BlackColor);
+	}
+
+	public void RestoreTileColor(GameObject tile) {
+		SetTileColor(new Vector2Int((int)tile.transform.position.x, (int)tile.transform.position.y), BoardTheme.WhiteColor, BoardTheme.BlackColor);
 	}
 
 	public void HighlightTile(GameObject tile) {

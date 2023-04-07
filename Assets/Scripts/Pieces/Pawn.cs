@@ -11,8 +11,8 @@ public class Pawn : Piece {
 	public override List<Vector2Int> PossibleMoves {
 		get {
 			possibleMoves.Clear();
-			possibleMoves.AddRange(MoveManager.Instance.GetPawnMovesForward(Position, ID > 0, FirstMove));
-			possibleMoves.AddRange(MoveManager.Instance.GetPawnDiagonalMoves(Position, ID > 0));
+			possibleMoves.AddRange(MoveGenerator.Instance.GetPawnMovesForward(Position, ID > 0, FirstMove));
+			possibleMoves.AddRange(MoveGenerator.Instance.GetPawnDiagonalMoves(Position, ID > 0));
 			RemoveFriendlyPiecesFromMoves();
 			RemoveIllegalMoves();
 			return possibleMoves;
