@@ -10,6 +10,8 @@ using System;
 using System.Linq;
 using Unity.Services.Relay;
 using TMPro;
+using System.Net.Sockets;
+using System.Net;
 
 public class LoginSessionManager : MonoBehaviour {
     public static LoginSessionManager Instance { get; private set; }
@@ -19,7 +21,7 @@ public class LoginSessionManager : MonoBehaviour {
 
     public string Username { get; private set; } = "Chess Player";
 	public string RelayCode { get; private set; } = null;
-	public string IP { get; private set; } = "0.0.0.0";
+	public string IP { get; private set; } = null;
 	public ushort Port { get; private set; } = 25565;
 	public LobbyManager LobbyManager { get; set; } = null;
 
@@ -66,9 +68,11 @@ public class LoginSessionManager : MonoBehaviour {
     public void PassConnectionTarget(string target) {
         if (relayServiceToggle.isOn) {
             RelayCode = target;
+            IP = null;
         } else {
             IP = target;
-        }
+			RelayCode = null;
+		}
     }
 
     public void ConnectClient() {
@@ -87,10 +91,17 @@ public class LoginSessionManager : MonoBehaviour {
             return;
         }
 
-        Debug.Log("Attempting to join relay game with code: " + RelayCode);
-        var relayHostData = await JoinRelayGame(RelayCode);
+        RelayJoinData relayHostData;
+        try {
+            Debug.Log("Attempting to join relay game with code: " + RelayCode);
+            relayHostData = await JoinRelayGame(RelayCode);
+		} catch (Exception e) {
+			Debug.LogError("Failed to join relay game with code: " + RelayCode);
+			Debug.LogError(e.Message);
+			return;
+		}
 
-        Debug.Log("Relay Host Data parameters: ");
+		Debug.Log("Relay Host Data parameters: ");
         Debug.Log("IP: " + relayHostData.IPv4Address);
         Debug.Log("Port: " + relayHostData.Port);
         Debug.Log("Allocation ID: " + relayHostData.AllocationID);
@@ -103,13 +114,20 @@ public class LoginSessionManager : MonoBehaviour {
     private void ConnectDirectClient() {
         unityTransport.SetConnectionData(IP, Port);
 
-        Debug.Log("Attempting to join directly to IP: " + IP);
-        StartClient();
-    }
+        if (unityTransport.ConnectionData.ServerEndPoint == default) {
+			Debug.LogError("The given IP address is invalid. Make sure the IP address is correct and try again.");
+			return;
+		}
 
-    private void StartClient() {
+		Debug.Log("Attempting to join directly to IP: " + IP);
+		StartClient();
+	}
+
+	private void StartClient() {
         if (NetworkManager.Singleton.StartClient()) {
-            Debug.Log("Client successfully started!");
+            Debug.Log("Client successfully started!\nConnecting to server...");
+        } else {
+            Debug.Log("Client could not be started.");
         }
     }
 
@@ -136,7 +154,15 @@ public class LoginSessionManager : MonoBehaviour {
             return;
         }
 
-        var relayHostData = await RegisterRelayHost();
+        RelayHostData relayHostData;
+        try {
+            Debug.Log("Attempting to create a relay game...");
+			relayHostData = await RegisterRelayHost();
+		} catch(Exception e) {
+			Debug.LogError("Failed to create a relay game.");
+			Debug.LogError(e.Message);
+            return;
+		}
 
         Debug.Log("Relay Host Data parameters: ");
         Debug.Log("IP: " + relayHostData.IPv4Address);
@@ -152,9 +178,26 @@ public class LoginSessionManager : MonoBehaviour {
     }
 
     private void StartDirectHost() {
-        unityTransport.SetConnectionData(IP, Port);
-        ConnectHost();
+        IP = GetLocalIPAddress();
+        unityTransport.SetConnectionData(IP, Port, "0.0.0.0");
+		ConnectHost();
     }
+
+    string GetLocalIPAddress() {
+		var host = Dns.GetHostEntry(Dns.GetHostName());
+        System.Collections.Generic.List<string> interNetworkIPAddresses = new();
+		foreach (var ip in host.AddressList) {
+			if (ip.AddressFamily == AddressFamily.InterNetwork) {
+                interNetworkIPAddresses.Add(ip.ToString());
+			}
+		}
+        if (interNetworkIPAddresses.Count > 0) {
+			Debug.Log("Found the following addresses, use one for connecting:" + string.Join(',', interNetworkIPAddresses));
+			return interNetworkIPAddresses.First();
+		}
+        Debug.LogError("Did not find any network network adapters with an IPv4 address in the system.\nIf you know your ip address - use it for connecting.");
+        return "n/a";
+	}
 
     private void ConnectHost() {
         if (NetworkManager.Singleton.StartHost()) {
@@ -164,6 +207,7 @@ public class LoginSessionManager : MonoBehaviour {
             lobby.GetComponent<NetworkObject>().Spawn();
             Debug.Log("Lobby created!");
         }
+        Debug.Log("Host could not be started.");
     }
 
     private struct RelayHostData {
