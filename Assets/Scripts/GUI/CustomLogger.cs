@@ -17,7 +17,7 @@ public class CustomLogger : MonoBehaviour {
 
     void Start() {
         logFileName = Application.dataPath + "/ChessOnlineLog.txt";
-        Debug.Log("Started up logging.");
+        Debug.Log("Started logging.");
     }
 
     void OnEnable() {
