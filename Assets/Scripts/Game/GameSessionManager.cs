@@ -28,7 +28,7 @@ public class GameSessionManager : NetworkBehaviour {
 
 	public override void OnNetworkSpawn() {
 		if (!IsServer) return;
-		if (Application.isEditor) return;
+		//if (Application.isEditor) return;
 		InitializeGameServer();
 		InitializeGameClientRPC(fenStartingPosition, WhitePlayerID.Value, BlackPlayerID.Value);
 	}

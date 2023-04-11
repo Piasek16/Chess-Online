@@ -37,7 +37,19 @@ public class LobbyManager : NetworkBehaviour {
         RegisterPlayerInLobbyServerRPC(localPlayerName);
         LoginSessionManager.Instance.LobbyManager = this;
         if (IsServer) GenerateAndUpdatePlayersLobbyText();
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
     }
+
+    private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut) {
+		Debug.Log("Scene " + sceneName + " loaded.");
+		if (sceneName == "StartingScene") {
+			transform.GetChild(0).gameObject.SetActive(true);
+            Debug.Log("Lobby GUI - shown.");
+		} else {
+			transform.GetChild(0).gameObject.SetActive(false);
+			Debug.Log("Lobby GUI - hidden.");
+		}
+	}
 
     private void Singleton_OnClientConnectedCallback(ulong obj) {
         if (!IsServer) return; //Technically impossible
@@ -132,10 +144,10 @@ public class LobbyManager : NetworkBehaviour {
     }
 
     public void StartGame() {
-        switch (selectedGameType) {
+		switch (selectedGameType) {
             case GameType.Classic: {
                     Debug.Log("Starting Classic mode!");
-                    //NetworkManager.Singleton.SceneManager.LoadScene("ClassicMode", LoadSceneMode.Single);
+                    NetworkManager.Singleton.SceneManager.LoadScene("ClassicMode", LoadSceneMode.Single);
                     break;
                 }
             case GameType.Upgraded: {

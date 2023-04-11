@@ -1222,7 +1222,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15c305f8c0a910e41bf3c579213c26c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_videoPlayer: {fileID: 704352077}
+  videoPlayer: {fileID: 704352077}
   VideoFileName: login_background.mp4
 --- !u!1 &754011884
 GameObject:

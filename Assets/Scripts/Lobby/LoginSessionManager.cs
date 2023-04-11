@@ -38,7 +38,7 @@ public class LoginSessionManager : MonoBehaviour {
         relayServiceToggle.onValueChanged.AddListener(UpdateConnectionPrompt);
         unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
         AuthenticatePlayer();
-    }
+	}
 
     async void AuthenticatePlayer() {
         await UnityServices.InitializeAsync();
@@ -225,7 +225,6 @@ public class LoginSessionManager : MonoBehaviour {
     void Update() {
         if (Input.GetKeyDown(KeyCode.Escape)) {
             hideGUI = !hideGUI;
-            LobbyManager?.transform.GetChild(0).gameObject.SetActive(!hideGUI);
             CustomLogger.Instance.HideChat = hideGUI;
             Debug.Log(hideGUI ? "GUI Hidden!" : "GUI Shown!");
         }
