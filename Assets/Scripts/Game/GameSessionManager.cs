@@ -1,15 +1,11 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameSessionManager : NetworkBehaviour {
 	public static GameSessionManager Instance { get; private set; }
 	void Awake() {
 		if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
-	}
-
-	void Start() {
-		boardManager = BoardManager.Instance;
-		gameLogicManager = ClassicGameLogicManager.Instance;
 	}
 
 	public NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();
@@ -27,13 +23,23 @@ public class GameSessionManager : NetworkBehaviour {
 	private ClassicGameLogicManager gameLogicManager;
 
 	public override void OnNetworkSpawn() {
-		if (!IsServer) return;
-		//if (Application.isEditor) return;
-		InitializeGameServer();
-		InitializeGameClientRPC(fenStartingPosition, WhitePlayerID.Value, BlackPlayerID.Value);
+		NetworkManager.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
 	}
 
-	public void InitializeTestGame() {
+	private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut) {
+		SetCachedInstanceVariables();
+		if (IsServer)
+			InitializeGame();
+	}
+
+	private void SetCachedInstanceVariables() {
+		boardManager = BoardManager.Instance;
+		gameLogicManager = ClassicGameLogicManager.Instance;
+		boardManager.CacheInstanceVariables();
+		gameLogicManager.CacheInstanceVarables();
+	}
+
+	public void InitializeGame() {
 		InitializeGameServer();
 		InitializeGameClientRPC(fenStartingPosition, WhitePlayerID.Value, BlackPlayerID.Value);
 	}

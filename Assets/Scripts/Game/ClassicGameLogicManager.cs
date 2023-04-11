@@ -12,7 +12,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			Instance = this;
 	}
 
-	void Start() {
+	public void CacheInstanceVarables() {
 		boardManager = BoardManager.Instance;
 		gameSessionManager = GameSessionManager.Instance;
 	}

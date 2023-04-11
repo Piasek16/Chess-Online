@@ -26,7 +26,7 @@ public class GameTestingManager : MonoBehaviour {
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.BackQuote)) {
-            GameSessionManager.Instance.InitializeTestGame();
+            GameSessionManager.Instance.InitializeGame();
         }
     }
 #endif

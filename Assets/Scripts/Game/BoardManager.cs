@@ -51,7 +51,7 @@ public class BoardManager : MonoBehaviour {
 		GenerateBoard();
 	}
 
-	void Start() {
+	public void CacheInstanceVariables() {
 		gameSessionManager = GameSessionManager.Instance;
 		gameLogicManager = ClassicGameLogicManager.Instance;
 	}
@@ -284,42 +284,6 @@ public class BoardManager : MonoBehaviour {
 			}
 		}
 	}
-
-	#region OldBoardState
-	/*public void LogBoardState() {
-		Debug.Log("Current Boardstate: " + ExportBoardState());
-	}*/
-
-	[Obsolete("Method is obsolete - use fen state instead")]
-	public string ExportBoardState() {
-		string boardState = string.Empty;
-		foreach (GameObject space in board) {
-			var piece = GetPieceFromSpace(space);
-			boardState += piece?.ID;
-			if (piece?.FirstMove == true) boardState += "*";
-			boardState += "/";
-		}
-		return boardState;
-	}
-
-	[Obsolete("Method is obsolete - use fen state instead")]
-	public void LoadBoardState(string boardStateData) {
-		var boardEnumerator = board.GetEnumerator();
-		var test = boardStateData.Split('/');
-		foreach (string s in boardStateData.Split('/')) {
-			if (!boardEnumerator.MoveNext()) break;
-			if (string.IsNullOrEmpty(s)) {
-				SetSpace((GameObject)boardEnumerator.Current, PieceType.None);
-			} else {
-				string pieceData = s;
-				bool firstMoveStatus = pieceData[^1] == '*';
-				if (firstMoveStatus) pieceData = pieceData.TrimEnd('*');
-				SetSpace((GameObject)boardEnumerator.Current, (PieceType)int.Parse(pieceData));
-				if (!firstMoveStatus) GetPieceFromSpace((GameObject)boardEnumerator.Current).FirstMove = false; //this should be removed (first move is set in game logic manager)
-			}
-		}
-	}
-	#endregion OldBoardState
 
 	#region FENState
 	private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
