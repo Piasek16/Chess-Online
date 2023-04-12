@@ -40,6 +40,15 @@ public class LoginSessionManager : MonoBehaviour {
         relayServiceToggle.onValueChanged.AddListener(UpdateConnectionPrompt);
         unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
         AuthenticatePlayer();
+		NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
+		NetworkManager.Singleton.OnClientDisconnectCallback += Singleton_OnClientDisconnectCallback;
+	}
+
+    void OnDestroy() {
+        if (NetworkManager.Singleton == null)
+            return;
+		NetworkManager.Singleton.OnClientConnectedCallback -= Singleton_OnClientConnectedCallback;
+		NetworkManager.Singleton.OnClientDisconnectCallback -= Singleton_OnClientDisconnectCallback;
 	}
 
     async void AuthenticatePlayer() {
@@ -81,8 +90,6 @@ public class LoginSessionManager : MonoBehaviour {
         } else {
             ConnectDirectClient();
         }
-        NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
-        NetworkManager.Singleton.OnClientDisconnectCallback += Singleton_OnClientDisconnectCallback;
     }
 
     private async void ConnectRelayClient() {
@@ -138,7 +145,12 @@ public class LoginSessionManager : MonoBehaviour {
 
     private void Singleton_OnClientDisconnectCallback(ulong obj) {
         Debug.Log("Client disconnected. (Or connection attempt failed/timed out)");
-    }
+		connectionCanvas.SetActive(true);
+	}
+
+    public void QuitFromOwnLobbyCallback() {
+		Singleton_OnClientDisconnectCallback(0);
+	}
 
     public void StartHost() {
         if (relayServiceToggle.isOn) {
@@ -206,8 +218,9 @@ public class LoginSessionManager : MonoBehaviour {
             var lobby = Instantiate(lobbyManagerPrefab);
             lobby.GetComponent<NetworkObject>().Spawn();
             Debug.Log("Lobby created!");
-        }
-        Debug.Log("Host could not be started.");
+        } else {
+			Debug.Log("Host could not be started.");
+		}
     }
 
     private struct RelayHostData {
@@ -270,9 +283,5 @@ public class LoginSessionManager : MonoBehaviour {
 			CustomLogger.Instance.LogBoxHidden = !CustomLogger.Instance.LogBoxHidden;
 			Debug.Log(CustomLogger.Instance.LogBoxHidden ? "Log box hidden!" : "Log box Shown!");
         }
-    }
-
-    public void PlayerDisconnected() {
-        connectionCanvas.SetActive(true);
     }
 }

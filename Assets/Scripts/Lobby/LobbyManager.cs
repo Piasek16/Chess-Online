@@ -40,6 +40,15 @@ public class LobbyManager : NetworkBehaviour {
         NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
     }
 
+    public override void OnNetworkDespawn() {
+		if (IsServer) {
+			NetworkManager.Singleton.OnClientConnectedCallback -= Singleton_OnClientConnectedCallback;
+			NetworkManager.Singleton.OnClientDisconnectCallback -= Singleton_OnClientDisconnectCallback;
+		}
+		readyButton.onClick.RemoveListener(ReadyButtonClicked);
+		NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= SceneManager_OnLoadEventCompleted;
+	}
+
     private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut) {
 		Debug.Log("Scene " + sceneName + " loaded.");
 		if (sceneName == "StartingScene") {
@@ -165,7 +174,7 @@ public class LobbyManager : NetworkBehaviour {
 
     public void QuitLobby() {
         Debug.Log("Player networking shutdown.");
-        LoginSessionManager.Instance.PlayerDisconnected();
-        NetworkManager.Singleton.Shutdown();
-    }
+		NetworkManager.Singleton.Shutdown();
+		LoginSessionManager.Instance.QuitFromOwnLobbyCallback();
+	}
 }

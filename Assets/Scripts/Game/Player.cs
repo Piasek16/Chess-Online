@@ -78,6 +78,7 @@ public class Player : NetworkBehaviour {
 
 	void PickUpPiece(Piece piece) {
 		if (piece == null || !BoardManager.Instance.IsPieceMyColor(piece) || (piece as Pawn)?.IsGhost == true) return;
+		DestroyHeldPiece();
 		piece.HighlightPossibleMoves();
 		heldPiece = Instantiate(piece, null); // copy happens before spirete renderer is disabled
 		piece.GetComponent<SpriteRenderer>().enabled = false; // hide the original piece
@@ -106,8 +107,10 @@ public class Player : NetworkBehaviour {
 	}
 
 	void DestroyHeldPiece() {
-		Destroy(heldPiece.gameObject);
-		movingPiece.GetComponent<SpriteRenderer>().enabled = true;
+		if (heldPiece != null)
+			Destroy(heldPiece.gameObject);
+		if (movingPiece != null)
+			movingPiece.GetComponent<SpriteRenderer>().enabled = true;
 		heldPiece = null;
 		movingPiece = null;
 	}

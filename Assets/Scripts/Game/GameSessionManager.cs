@@ -26,6 +26,10 @@ public class GameSessionManager : NetworkBehaviour {
 		NetworkManager.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
 	}
 
+	public override void OnNetworkDespawn() {
+		NetworkManager.SceneManager.OnLoadEventCompleted -= SceneManager_OnLoadEventCompleted;
+	}
+
 	private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut) {
 		SetCachedInstanceVariables();
 		if (IsServer)
@@ -46,7 +50,7 @@ public class GameSessionManager : NetworkBehaviour {
 
 	private void InitializeGameServer() {
 		var connectedPlayers = NetworkManager.Singleton.ConnectedClientsIds;
-		WhitePlayerID.Value = (ulong)Random.Range(0, connectedPlayers.Count);
+		WhitePlayerID.Value = connectedPlayers[Random.Range(0, connectedPlayers.Count)];
 		foreach (ulong id in connectedPlayers) {
 			if (id != WhitePlayerID.Value) { BlackPlayerID.Value = id; break; }
 		}
