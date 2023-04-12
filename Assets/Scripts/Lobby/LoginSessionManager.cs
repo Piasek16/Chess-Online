@@ -265,12 +265,10 @@ public class LoginSessionManager : MonoBehaviour {
             Key = allocation.Key };
     }
 
-    bool hideGUI = false;
     void Update() {
         if (Input.GetKeyDown(KeyCode.Escape)) {
-            hideGUI = !hideGUI;
-            CustomLogger.Instance.HideChat = hideGUI;
-            Debug.Log(hideGUI ? "Log box hidden!" : "Log box Shown!");
+			CustomLogger.Instance.LogBoxHidden = !CustomLogger.Instance.LogBoxHidden;
+			Debug.Log(CustomLogger.Instance.LogBoxHidden ? "Log box hidden!" : "Log box Shown!");
         }
     }
 
