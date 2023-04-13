@@ -20,7 +20,7 @@ public class MoveTester : MonoBehaviour {
 	}
 
 	void Update() {
-		if (Input.GetKeyDown(KeyCode.BackQuote)) {
+		if (Input.GetKeyDown(KeyCode.I)) {
 			GameSessionManager.Instance.InitializeGame();
 		}
 // End of what was copied

@@ -47,6 +47,7 @@ public class LobbyManager : NetworkBehaviour {
 		}
 		readyButton.onClick.RemoveListener(ReadyButtonClicked);
 		NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= SceneManager_OnLoadEventCompleted;
+		LoginSessionManager.Instance.LobbyManager = null;
 	}
 
     private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut) {

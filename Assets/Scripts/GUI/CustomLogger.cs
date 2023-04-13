@@ -10,8 +10,7 @@ public class CustomLogger : MonoBehaviour {
 	void Awake() {
 		if (Instance != null && Instance != this) Destroy(gameObject); else { Instance = this; DontDestroyOnLoad(gameObject); };
 	}
-	private bool logBoxHidden = true;
-	public bool LogBoxHidden { get => logBoxHidden; set { transform.GetChild(0).gameObject.SetActive(!value); logBoxHidden = value; } }
+	public bool LogBoxHidden { get => !transform.GetChild(0).gameObject.activeSelf; set => transform.GetChild(0).gameObject.SetActive(!value); }
 
 	List<string> logMessages = new();
 	string gameSaveFilePath = null;
