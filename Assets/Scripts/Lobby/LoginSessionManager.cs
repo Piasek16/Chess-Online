@@ -280,17 +280,17 @@ public class LoginSessionManager : MonoBehaviour {
 		};
 	}
 
-	bool promptVisible = false;
+	bool PromptVisible { get => transform.GetChild(2).gameObject.activeSelf; set => transform.GetChild(2).gameObject.SetActive(value); }
 	enum UserActivity { InMenu, InLobby, PlayingGame };
-	UserActivity userActivity; 
+	UserActivity userActivity;
 	void Update() {
 		if (Input.GetKeyDown(KeyCode.BackQuote)) {
 			CustomLogger.Instance.LogBoxHidden = !CustomLogger.Instance.LogBoxHidden;
 			Debug.Log(CustomLogger.Instance.LogBoxHidden ? "Log box hidden!" : "Log box Shown!");
 		}
 		if (Input.GetKeyDown(KeyCode.Escape)) {
-			if (promptVisible) {
-				HidePrompt();
+			if (PromptVisible) {
+				PromptVisible = false;
 				return;
 			}
 			userActivity = DetermineUserActivity();
@@ -300,7 +300,7 @@ public class LoginSessionManager : MonoBehaviour {
 				_ => "game",
 			};
 			ExpandPromptText(activityName);
-			PromptUser();
+			PromptVisible = true;
 		}
 	}
 
@@ -319,18 +319,8 @@ public class LoginSessionManager : MonoBehaviour {
 		textField.text = $"Quit from {activity}?";
 	}
 
-	void PromptUser() {
-		transform.GetChild(2).gameObject.SetActive(true);
-		promptVisible = true;
-	}
-
-	void HidePrompt() {
-		transform.GetChild(2).gameObject.SetActive(false);
-		promptVisible = false;
-	}
-
 	public void ProceedWithPrompt() {
-		transform.GetChild(2).gameObject.SetActive(false);
+		PromptVisible = false;
 		switch (userActivity) {
 			case UserActivity.PlayingGame:
 				// TODO: Handle Game quit
