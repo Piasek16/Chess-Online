@@ -526,6 +526,7 @@ public class BoardManager : MonoBehaviour {
 			}
 			// Create ghost pawn
 			Pawn ghost = Instantiate(Instance.pieces[(int)PieceType.WPawn], poolPosition, Quaternion.identity) as Pawn;
+			ghost.name = "GhostPawn";
 			Destroy(ghost.GetComponent<SpriteRenderer>());
 			ghost.transform.parent = poolObject.transform;
 			ghost.gameObject.SetActive(false);

@@ -1,8 +1,8 @@
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour {
-    float targetRight = 7.5f;
-    float targetLeft = -0.5f;
+    float targetRight = 8f;
+    float targetLeft = -1f;
     float horizontalSize;
     Vector3 startingPosition;
     void Start() {
@@ -20,5 +20,10 @@ public class CameraManager : MonoBehaviour {
         transform.SetPositionAndRotation(
             new Vector3(startingPosition.x + (targetLeft - (startingPosition.x - horizontalSize)), startingPosition.y, startingPosition.z), 
             Quaternion.Euler(0, 0, 180));
-    }
+        // Correctly mirror side text
+		Transform sideTextTransform = BoardManager.Instance.transform.GetChild(0);
+		sideTextTransform.SetPositionAndRotation(
+			new Vector3(sideTextTransform.position.x + 8, sideTextTransform.position.y + 8, sideTextTransform.position.z),
+			Quaternion.Euler(180, 180, 0));
+	}
 }
