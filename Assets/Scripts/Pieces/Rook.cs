@@ -1,8 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Rook : Piece {
+public class Rook : Piece, IFirstMovable {
 
     public override List<Vector2Int> PossibleMoves { 
         get {
@@ -13,4 +12,6 @@ public class Rook : Piece {
             return possibleMoves;
         } 
     }
+
+    public bool FirstMove { get; set; } = false;
 }

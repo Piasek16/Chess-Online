@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Netcode;
 
-public class Pawn : Piece {
+public class Pawn : Piece, IFirstMovable {
 
 	public bool IsGhost => ghostParent != null;
 
@@ -18,6 +17,8 @@ public class Pawn : Piece {
 			return possibleMoves;
 		}
 	}
+
+	public bool FirstMove { get; set; } = false;
 
 	public void InitGhost(Vector2Int pawnParentLocation) {
 		ghostParent = BoardManager.Instance.GetPieceFromSpace(pawnParentLocation).GetComponent<Pawn>();

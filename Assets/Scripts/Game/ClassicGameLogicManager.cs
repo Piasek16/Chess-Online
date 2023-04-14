@@ -31,6 +31,9 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	}
 
 	public void AfterMove(Move move) {
+		if (movingPiece is IFirstMovable firstMovable) {
+			firstMovable.FirstMove = false;
+		}
 		var enPassantTarget = gameSessionManager.OfficialFENGameState.EnPassantTarget;
 		if (enPassantTarget != "-") { // En pessant ghost removal check
 			if (boardManager.GetPieceFromSpace(BoardManager.BoardLocationToVector2Int(enPassantTarget)) is Pawn pawnGhost) {
@@ -48,7 +51,6 @@ public class ClassicGameLogicManager : MonoBehaviour {
 				// TODO: Send local player prompt to choose promotion piece (potentially await or handle choosen piece in another method)
 			}
 		}
-		movingPiece.FirstMove = false;
 		if (movingPiece is King && Vector2Int.Distance(move.PositionOrigin, move.PositionDestination) == 2) { // Castling check
 			bool castleKingSide = move.PositionDestination.x > move.PositionOrigin.x;
 			if (castleKingSide) {

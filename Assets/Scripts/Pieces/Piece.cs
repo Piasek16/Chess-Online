@@ -11,8 +11,6 @@ public class Piece : MonoBehaviour {
 	protected List<Vector2Int> possibleMoves = new List<Vector2Int>();
 	public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }
 
-	public bool FirstMove { get; set; } = false;
-
 	private List<GameObject> spacesHighlighted;
 
 	public void HighlightPossibleMoves() {

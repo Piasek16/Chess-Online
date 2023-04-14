@@ -1,8 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class King : Piece {
+public class King : Piece, IFirstMovable {
 
     public override List<Vector2Int> PossibleMoves {
         get {
@@ -14,6 +13,8 @@ public class King : Piece {
             return possibleMoves;
         }
     }
+
+    public bool FirstMove { get; set; } = false;
 
     private List<Vector2Int> GetCastlingMoves() {
         List<Vector2Int> moves = new List<Vector2Int>();

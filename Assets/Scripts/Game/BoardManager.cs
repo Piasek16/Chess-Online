@@ -338,9 +338,11 @@ public class BoardManager : MonoBehaviour {
 	private void SetPawnFirstMovePrivileges() {
 		for (int i = 0; i < 8; i++) {
 			var pieceFirstRow = GetPieceFromSpace(i, 1);
-			if (pieceFirstRow != null) pieceFirstRow.FirstMove = true;
+			if (pieceFirstRow is Pawn pawnFirstRow)
+				pawnFirstRow.FirstMove = true;
 			var pieceSecondRow = GetPieceFromSpace(i, 6);
-			if (pieceSecondRow != null) pieceSecondRow.FirstMove = true;
+			if (pieceSecondRow is Pawn pawnSecondRow)
+				pawnSecondRow.FirstMove = true;
 		}
 	}
 
@@ -356,25 +358,25 @@ public class BoardManager : MonoBehaviour {
 		foreach (char c in fenCastlingRights) {
 			switch (c) {
 				case 'K': {
-					var rook = GetPieceFromSpace(7, 0);
+					var rook = GetPieceFromSpace(7, 0) as Rook;
 					rook.FirstMove = true;
 					kings[0].FirstMove = true;
 					break;
 				}
 				case 'k': {
-					var rook = GetPieceFromSpace(7, 7);
+					var rook = GetPieceFromSpace(7, 7) as Rook;
 					rook.FirstMove = true;
 					kings[1].FirstMove = true;
 					break;
 				}
 				case 'Q': {
-					var rook = GetPieceFromSpace(0, 0);
+					var rook = GetPieceFromSpace(0, 0) as Rook;
 					rook.FirstMove = true;
 					kings[0].FirstMove = true;
 					break;
 				}
 				case 'q': {
-					var rook = GetPieceFromSpace(0, 7);
+					var rook = GetPieceFromSpace(0, 7) as Rook;
 					rook.FirstMove = true;
 					kings[1].FirstMove = true;
 					break;
