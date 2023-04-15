@@ -171,13 +171,13 @@ public class GameSessionManager : NetworkBehaviour {
 	}
 
 	[ServerRpc(RequireOwnership = false)]
-	public void RelayPawnPromotionServerRPC(Vector2Int pawnLocation, BoardManager.PieceType promotionTarget, ServerRpcParams param = default) {
+	public void RelayPawnPromotionServerRPC(Vector2Int pawnLocation, PieceType promotionTarget, ServerRpcParams param = default) {
 		PromotePawnClientRPC(pawnLocation, promotionTarget, GetOtherPlayerTarget(param));
 		Debug.Log($"[Server] Relayed pawn promotion to {promotionTarget} on {pawnLocation}");
 	}
 
 	[ClientRpc]
-	public void PromotePawnClientRPC(Vector2Int pawnLocation, BoardManager.PieceType promotionTarget, ClientRpcParams param = default) {
+	public void PromotePawnClientRPC(Vector2Int pawnLocation, PieceType promotionTarget, ClientRpcParams param = default) {
 		gameLogicManager.PromotePawn(boardManager.GetPieceFromSpace(pawnLocation) as Pawn, promotionTarget);
 		Debug.Log($"[Client] Executed pawn promotion to {promotionTarget} on {pawnLocation}");
 	}

@@ -63,7 +63,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		}
 	}
 
-	public void PromotePawn(Pawn pawn, BoardManager.PieceType pieceType) {
+	public void PromotePawn(Pawn pawn, PieceType pieceType) {
 		if (pawn is null) {
 			Debug.LogError("Attempted to promote a piece that is not a pawn!");
 			return;

@@ -5,8 +5,9 @@ using UnityEngine;
 public class Piece : MonoBehaviour {
 
 	public int ID;
-
 	public Vector2Int Position { get => new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y)); }
+	public PieceType Type { get => (PieceType)ID; }
+	public virtual char Symbol { get => '0'; }
 
 	protected List<Vector2Int> possibleMoves = new List<Vector2Int>();
 	public virtual List<Vector2Int> PossibleMoves { get { return possibleMoves; } }

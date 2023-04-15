@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Pawn : Piece, IFirstMovable {
+	public override char Symbol => ID > 0 ? 'P' : 'p';
 	public bool FirstMove { get; set; } = false;
 
 	public override List<Vector2Int> PossibleMoves {

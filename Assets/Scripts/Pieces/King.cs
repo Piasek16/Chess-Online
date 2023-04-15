@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class King : Piece, IFirstMovable {
+	public override char Symbol => ID > 0 ? 'K' : 'k';
 
-    public override List<Vector2Int> PossibleMoves {
+	public override List<Vector2Int> PossibleMoves {
         get {
             possibleMoves.Clear();
             possibleMoves.AddRange(MoveGenerator.Instance.GetKingMoves(Position));

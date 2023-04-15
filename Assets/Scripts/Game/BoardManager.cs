@@ -16,25 +16,11 @@ public class BoardManager : MonoBehaviour {
 	private GameSessionManager gameSessionManager;
 	private ClassicGameLogicManager gameLogicManager;
 	private PiecePool piecePool;
+	private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>();
 
 	public BoardTheme BoardTheme;
 	public GameObject[,] board = new GameObject[8, 8];
 	public King LocalPlayerKing;
-	public enum PieceType : int {
-		None = 0,
-		WKing = 1,
-		WQueen = 2,
-		WBishop = 3,
-		WKnight = 4,
-		WRook = 5,
-		WPawn = 6,
-		BKing = -1,
-		BQueen = -2,
-		BBishop = -3,
-		BKnight = -4,
-		BRook = -5,
-		BPawn = -6
-	}
 
 	/// <summary>
 	/// The instance of the BoardManager singleton.
@@ -46,6 +32,7 @@ public class BoardManager : MonoBehaviour {
 		pieces = new Dictionary<int, Piece>();
 		foreach (Piece piece in piecesPrefabs) {
 			pieces.Add(piece.ID, piece);
+			fenPieces.Add(piece.Symbol, piece.Type);
 		}
 		piecePool = new PiecePool();
 		GenerateBoard();
@@ -268,21 +255,6 @@ public class BoardManager : MonoBehaviour {
 	}
 
 	#region FENState
-	private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>() {
-		{ 'K', PieceType.WKing },
-		{ 'Q', PieceType.WQueen },
-		{ 'B', PieceType.WBishop },
-		{ 'N', PieceType.WKnight },
-		{ 'R', PieceType.WRook },
-		{ 'P', PieceType.WPawn },
-		{ 'k', PieceType.BKing },
-		{ 'q', PieceType.BQueen },
-		{ 'b', PieceType.BBishop },
-		{ 'n', PieceType.BKnight },
-		{ 'r', PieceType.BRook },
-		{ 'p', PieceType.BPawn },
-	};
-
 	/// <summary>
 	/// Loads the board state(location of all pieces) from a supplied portion of a fen game state string.
 	/// Automatically updates local king's for the players and sets first move privileges for pawns if they are at their starting lines.
@@ -385,7 +357,6 @@ public class BoardManager : MonoBehaviour {
 	/// </returns>
 	public string GetFENBoardState() {
 		string fenBoardState = string.Empty;
-		var reversedFenPieces = fenPieces.ToDictionary(piece => piece.Value, piece => piece.Key);
 		for (int rank = 7; rank >= 0; rank--) {
 			int emptySpaces = 0;
 			for (int file = 0; file < 8; file++) {
@@ -395,7 +366,7 @@ public class BoardManager : MonoBehaviour {
 				} else {
 					if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
 					emptySpaces = 0;
-					fenBoardState += reversedFenPieces[(PieceType)piece.ID].ToString();
+					fenBoardState += piece.Symbol;
 				}
 			}
 			if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
