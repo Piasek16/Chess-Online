@@ -66,7 +66,7 @@ public class LoginSessionManager : MonoBehaviour {
 
 	public void AdvanceLoginCanvas() {
 		if (Username.Length < 1) { Debug.LogError("Username must be at least 1 character long!"); return; }
-		if (Username.Length > 32) { Debug.LogError("Username can be at most 32 characters long!"); return; }
+		if (Username.Length > 29) { Debug.LogError("Username can be at most 29 characters long!"); return; }
 		usernameCanvas.SetActive(false);
 		connectionCanvas.SetActive(true);
 	}
