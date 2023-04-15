@@ -133,7 +133,7 @@ public class MoveTester : MonoBehaviour {
 		foreach (var space in BoardManager.Instance.board) {
 			if (space.transform.childCount > 0) {
 				var piece = space.transform.GetChild(0).GetComponent<Piece>();
-				if (piece is Pawn pawn && pawn.IsGhost)
+				if (piece is GhostPawn)
 					continue;
 				pieces.Add(piece);
 			}
@@ -167,7 +167,7 @@ public class MoveTester : MonoBehaviour {
 		foreach (var space in BoardManager.Instance.board) {
 			if (space.transform.childCount > 0) {
 				var piece = space.transform.GetChild(0).GetComponent<Piece>();
-				if (piece is Pawn pawn && pawn.IsGhost)
+				if (piece is GhostPawn)
 					continue;
 				if (piece.ID > 0)
 					tilesWhite.Add(piece.Position);

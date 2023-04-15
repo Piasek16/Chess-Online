@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour {
@@ -9,14 +10,14 @@ public class CameraManager : MonoBehaviour {
         Camera main = GetComponent<Camera>();
         horizontalSize = main.aspect * main.orthographicSize;
         startingPosition = transform.position;
-        AdjustPositionForWhitePlayer(); //default adjust
+        AdjustCameraPositionForWhitePlayer(); //default adjust
     }
 
-    public void AdjustPositionForWhitePlayer() {
+    public void AdjustCameraPositionForWhitePlayer() {
         transform.position = new Vector3(startingPosition.x + (targetRight - (startingPosition.x + horizontalSize)), startingPosition.y, startingPosition.z);
     }
 
-    public void AdjustPositionForBlackPlayer() {
+    public void ApplyBlackPlayerViewFixes() {
         transform.SetPositionAndRotation(
             new Vector3(startingPosition.x + (targetLeft - (startingPosition.x - horizontalSize)), startingPosition.y, startingPosition.z), 
             Quaternion.Euler(0, 0, 180));
@@ -25,5 +26,11 @@ public class CameraManager : MonoBehaviour {
 		sideTextTransform.SetPositionAndRotation(
 			new Vector3(sideTextTransform.position.x + 8, sideTextTransform.position.y + 8, sideTextTransform.position.z),
 			Quaternion.Euler(180, 180, 0));
+        // Reverse text direction
+        foreach (var tmpText in sideTextTransform.GetComponentsInChildren<TMP_Text>()) {
+			char[] textArray = tmpText.text.ToCharArray();
+			System.Array.Reverse(textArray);
+			tmpText.text = new string(textArray);
+		}
 	}
 }

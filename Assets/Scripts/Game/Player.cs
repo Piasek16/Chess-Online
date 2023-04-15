@@ -40,7 +40,7 @@ public class Player : NetworkBehaviour {
 			}
 			PlayerName.Value = _playerName;
 			if (!PlayerColor) {
-				Camera.main.GetComponent<CameraManager>().AdjustPositionForBlackPlayer();
+				Camera.main.GetComponent<CameraManager>().ApplyBlackPlayerViewFixes();
 			}
 		}
 		if (GameSessionManager.Instance.LocalPlayer.PlayerColor == false) {
@@ -77,7 +77,7 @@ public class Player : NetworkBehaviour {
 	}
 
 	void PickUpPiece(Piece piece) {
-		if (piece == null || !BoardManager.Instance.IsPieceMyColor(piece) || (piece as Pawn)?.IsGhost == true) return;
+		if (piece == null || !BoardManager.Instance.IsPieceMyColor(piece) || piece is GhostPawn) return;
 		DestroyHeldPiece();
 		piece.HighlightPossibleMoves();
 		heldPiece = Instantiate(piece, null); // copy happens before spirete renderer is disabled

@@ -17,7 +17,7 @@ public class MoveGenerator : MonoBehaviour {
     /// False if there is a real piece on the spot.</returns>
     private bool CheckAndAddPosition(List<Vector2Int> moves, Vector2Int position) {
         var pieceInPosition = BoardManager.Instance.GetPieceFromSpace(position);
-        if ((pieceInPosition as Pawn)?.IsGhost == true || pieceInPosition == null) {
+        if (pieceInPosition == null || pieceInPosition is GhostPawn) {
             moves.Add(position);
             return true;
         } else {

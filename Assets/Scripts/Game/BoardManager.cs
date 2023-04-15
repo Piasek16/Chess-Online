@@ -189,26 +189,8 @@ public class BoardManager : MonoBehaviour {
 		if (executeLogic) gameLogicManager.AfterMove(move);
 	}
 
-	#region OldMovePiece
-	[Obsolete("Use struct format instead")]
-	public void MovePiece(Vector2Int oldPiecePosition, Vector2Int newPiecePosition) {
-		var _oldPiece = GetPieceFromSpace(newPiecePosition);
-		if (_oldPiece != null) {
-			if ((_oldPiece as Pawn)?.IsGhost == true && GetPieceFromSpace(oldPiecePosition).GetType() == typeof(Pawn)) {
-				(_oldPiece as Pawn)?.ExecuteGhost();
-			}
-			_oldPiece.transform.parent = null; //Detach from gameboard to make the piece not show up in search for pieces (Destroy gets executerd later in the frame)
-			Destroy(_oldPiece.gameObject);
-		}
-		var movedPiece = GetPieceFromSpace(oldPiecePosition);
-		movedPiece.transform.parent = board[newPiecePosition.x, newPiecePosition.y].transform;
-		movedPiece.transform.localPosition = Vector3.zero;
-		//Debug.Log("Moved " + movedPiece.name + " from " + oldPiecePosition + " to " + newPiecePosition);
-	}
-	#endregion OldMovePiece
-
 	public void SummonGhostPawn(Vector2Int parentPawnPosition, Vector2Int ghostLocation) {
-		Pawn ghost = piecePool.GetGhost();
+		GhostPawn ghost = piecePool.GetGhost();
 		ghost.transform.parent = board[ghostLocation.x, ghostLocation.y].transform;
 		ghost.transform.localPosition = Vector3.zero;
 		ghost.InitGhost(parentPawnPosition);
@@ -408,7 +390,7 @@ public class BoardManager : MonoBehaviour {
 			int emptySpaces = 0;
 			for (int file = 0; file < 8; file++) {
 				var piece = GetPieceFromSpace(file, rank);
-				if (piece == null || (piece as Pawn)?.IsGhost == true) {
+				if (piece == null || piece is GhostPawn) {
 					emptySpaces++;
 				} else {
 					if (emptySpaces > 0) fenBoardState += emptySpaces.ToString();
@@ -456,9 +438,9 @@ public class BoardManager : MonoBehaviour {
 	/// </summary>
 	/// <returns>Square target of EnPassant</returns>
 	public string GetFENEnPassantTarget() {
-		foreach(var pawn in FindPiecesOfType<Pawn>()) {
-			if (pawn.IsGhost) return Vector2IntToBoardLocation(pawn.Position);
-		}
+		var ghostPawns = FindPiecesOfType<GhostPawn>();
+		if (ghostPawns.Count > 0) 
+			return Vector2IntToBoardLocation(ghostPawns[0].Position);
 		return "-";
 	}
 	#endregion FENState
@@ -504,7 +486,7 @@ public class BoardManager : MonoBehaviour {
 		return piece.ID * (gameSessionManager.LocalPlayer.PlayerColor ? 1 : -1) > 0;
 	}
 
-	public void ReturnGhost(Pawn ghost) {
+	public void ReturnGhost(GhostPawn ghost) {
 		piecePool.ReturnGhost(ghost);
 	}
 
@@ -515,7 +497,7 @@ public class BoardManager : MonoBehaviour {
 		private readonly Dictionary<PieceType, Queue<Piece>> pool = new();
 		private readonly GameObject poolObject;
 		private readonly Vector3Int poolPosition = new(-1, -1, -1);
-		private Pawn ghostPawn;
+		private GhostPawn ghostPawn;
 
 		public PiecePool() {
 			poolObject = new GameObject("PiecePool");
@@ -524,13 +506,15 @@ public class BoardManager : MonoBehaviour {
 			foreach (var piece in Instance.piecesPrefabs) {
 				pool.Add((PieceType)piece.ID, new Queue<Piece>());
 			}
-			// Create ghost pawn
-			Pawn ghost = Instantiate(Instance.pieces[(int)PieceType.WPawn], poolPosition, Quaternion.identity) as Pawn;
-			ghost.name = "GhostPawn";
-			Destroy(ghost.GetComponent<SpriteRenderer>());
+			ghostPawn = CreateGhostPawn();
+		}
+
+		private GhostPawn CreateGhostPawn() {
+			GameObject ghost = new GameObject("GhostPawn");
+			ghost.transform.position = poolPosition;
 			ghost.transform.parent = poolObject.transform;
-			ghost.gameObject.SetActive(false);
-			ghostPawn = ghost;
+			ghost.SetActive(false);
+			return ghost.AddComponent<GhostPawn>();
 		}
 
 		/// <summary>
@@ -555,8 +539,8 @@ public class BoardManager : MonoBehaviour {
 		/// </summary>
 		/// <param name="piece">Piece to return</param>
 		public void ReturnPiece(Piece piece) {
-			if (piece is Pawn pawn && pawn.IsGhost) {
-				ReturnGhost(pawn);
+			if (piece is GhostPawn ghost) {
+				ReturnGhost(ghost);
 				return;
 			}
 			piece.gameObject.SetActive(false);
@@ -565,9 +549,9 @@ public class BoardManager : MonoBehaviour {
 			pool[(PieceType)piece.ID].Enqueue(piece);
 		}
 
-		public Pawn GetGhost() {
+		public GhostPawn GetGhost() {
 			if (ghostPawn == null)
-				throw new Exception("Ghost is already in use! - Return the used ghost before requesting again!");
+				throw new Exception("Ghost is already in use! - Return the currently used ghost before requesting!");
 			var ghost = ghostPawn;
 			ghost.gameObject.SetActive(true);
 			ghost.transform.parent = null;
@@ -575,7 +559,7 @@ public class BoardManager : MonoBehaviour {
 			return ghost;
 		}
 
-		public void ReturnGhost(Pawn ghost) {
+		public void ReturnGhost(GhostPawn ghost) {
 			ghost.gameObject.SetActive(false);
 			ghost.transform.parent = poolObject.transform;
 			ghost.transform.position = poolPosition;

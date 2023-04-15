@@ -22,8 +22,8 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	public void BeforeMove(Move move) {
 		movingPiece = boardManager.GetPieceFromSpace(move.PositionOrigin);
 		targetPiece = boardManager.GetPieceFromSpace(move.PositionDestination);
-		if (movingPiece is Pawn && targetPiece is Pawn possibleGhost) { // En pessant capture check
-			possibleGhost.ExecuteGhost(); // Ghost execution checks for is ghost
+		if (movingPiece is Pawn && targetPiece is GhostPawn ghost) { // En pessant capture check
+			ghost.ExecuteGhost();
 		}
 		if (targetPiece != null) {
 			boardManager.DestroyPiece(targetPiece);
@@ -36,8 +36,8 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		}
 		var enPassantTarget = gameSessionManager.OfficialFENGameState.EnPassantTarget;
 		if (enPassantTarget != "-") { // En pessant ghost removal check
-			if (boardManager.GetPieceFromSpace(BoardManager.BoardLocationToVector2Int(enPassantTarget)) is Pawn pawnGhost) {
-				pawnGhost.DisposeOfGhost();
+			if (boardManager.GetPieceFromSpace(BoardManager.BoardLocationToVector2Int(enPassantTarget)) is GhostPawn ghost) {
+				ghost.DisposeOfGhost();
 			}
 		}
 		if (movingPiece is Pawn) {
