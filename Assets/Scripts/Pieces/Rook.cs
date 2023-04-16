@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class Rook : Piece, IFirstMovable {
 	public override char Symbol => ID > 0 ? 'R' : 'r';
+	public bool FirstMove { get; set; } = false;
 
 	public override List<Vector2Int> PossibleMoves { 
         get {
@@ -13,6 +14,4 @@ public class Rook : Piece, IFirstMovable {
             return possibleMoves;
         } 
     }
-
-    public bool FirstMove { get; set; } = false;
 }

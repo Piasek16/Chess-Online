@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ClassicGameLogicManager : MonoBehaviour {
@@ -98,5 +99,37 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			}
 			return numberOfLegalMoves;
 		}
+	}
+
+	public bool IsKingInCheck() {
+		var king = BoardManager.Instance.LocalPlayerKing;
+		var positionsToCheck = new List<Vector2Int>();
+		positionsToCheck.AddRange(MoveGenerator.Instance.GetDiagonalMoves(king.Position));
+		positionsToCheck.AddRange(MoveGenerator.Instance.GetVerticalMoves(king.Position));
+		positionsToCheck.AddRange(MoveGenerator.Instance.GetKnightMoves(king.Position));
+		positionsToCheck.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount <= 0
+			|| BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * king.ID > 0);
+		if (positionsToCheck.Count == 0) return false;
+		foreach (Vector2Int position in positionsToCheck) {
+			var possiblyThreateningPiece = BoardManager.Instance.GetPieceFromSpace(position);
+			var possiblePieceMoves = possiblyThreateningPiece.PossibleMoves;
+			foreach (var move in possiblePieceMoves) {
+				var piece = BoardManager.Instance.GetPieceFromSpace(move);
+				if (piece != null)
+					if (piece.GetType() == typeof(King)) return true;
+			}
+		}
+		return false;
+	}
+
+	public bool IsMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
+		var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
+		if (oldPiece != null) oldPiece.transform.parent = null;
+		Move move = new(oldPosition, newPosition);
+		BoardManager.Instance.ExecuteMove(move, false);
+		var check = IsKingInCheck();
+		BoardManager.Instance.ExecuteMove(move.Reverse, false);
+		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
+		return !check;
 	}
 }

@@ -8,6 +8,10 @@ public class MoveGenerator : MonoBehaviour {
         if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
     }
 
+    void OnDestroy() {
+		Instance = null;
+	}
+
     /// <summary>
     /// Checks if a position is valid to add to a list of possible moves and adds it if it is.
     /// </summary>
@@ -163,37 +167,5 @@ public class MoveGenerator : MonoBehaviour {
 
     public static bool IsPositionValid(Vector2Int position) {
         return (position.x >= 0 && position.x < 8 && position.y >= 0 && position.y < 8);
-    }
-
-    public bool IsKingInCheck() {
-        var king = BoardManager.Instance.LocalPlayerKing;
-        var positionsToCheck = new List<Vector2Int>();
-        positionsToCheck.AddRange(GetDiagonalMoves(king.Position));
-        positionsToCheck.AddRange(GetVerticalMoves(king.Position));
-        positionsToCheck.AddRange(GetKnightMoves(king.Position));
-        positionsToCheck.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount <= 0
-            || BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * king.ID > 0);
-        if (positionsToCheck.Count == 0) return false;
-        foreach (Vector2Int position in positionsToCheck) {
-            var possiblyThreateningPiece = BoardManager.Instance.GetPieceFromSpace(position);
-            var possiblePieceMoves = possiblyThreateningPiece.PossibleMoves;
-            foreach (var move in possiblePieceMoves) {
-                var piece = BoardManager.Instance.GetPieceFromSpace(move);
-                if (piece != null)
-                    if (piece.GetType() == typeof(King)) return true;
-            }
-        }
-        return false;
-    }
-
-    public bool IsMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
-        var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
-        if (oldPiece != null) oldPiece.transform.parent = null;
-		Move move = new(oldPosition, newPosition);
-        BoardManager.Instance.ExecuteMove(move, false);
-        var check = IsKingInCheck();
-		BoardManager.Instance.ExecuteMove(move.Reverse, false);
-		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
-        return !check;
     }
 }

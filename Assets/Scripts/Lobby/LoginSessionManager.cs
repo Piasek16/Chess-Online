@@ -43,6 +43,15 @@ public class LoginSessionManager : MonoBehaviour {
 		AuthenticatePlayer();
 		NetworkManager.Singleton.OnClientConnectedCallback += Singleton_OnClientConnectedCallback;
 		NetworkManager.Singleton.OnClientDisconnectCallback += Singleton_OnClientDisconnectCallback;
+		if (Camera.main.aspect < 1.32f)
+			Debug.LogWarning("Aspect ratio is too small for the game to be played properly! - Use an aspect ratio of 4:3 or higher.");
+		SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+	}
+
+	private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1) {
+		if (arg1.buildIndex != 0) return;
+		unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+		GameObject.Find("InitialPromptCanvas").SetActive(false);
 	}
 
 	void OnDestroy() {
@@ -147,6 +156,11 @@ public class LoginSessionManager : MonoBehaviour {
 	private void Singleton_OnClientDisconnectCallback(ulong obj) {
 		Debug.Log("Client disconnected. (Or connection attempt failed/timed out)");
 		connectionCanvas.SetActive(true);
+		if (SceneManager.GetActiveScene().buildIndex != 0) {
+			NetworkManager.Singleton.Shutdown();
+			Destroy(NetworkManager.Singleton.gameObject);
+			SceneManager.LoadScene(0);
+		}
 	}
 
 	public void QuitFromOwnLobbyCallback() {
@@ -205,7 +219,7 @@ public class LoginSessionManager : MonoBehaviour {
 			}
 		}
 		if (interNetworkIPAddresses.Count > 0) {
-			Debug.Log("Found the following addresses, use one for connecting:" + string.Join(',', interNetworkIPAddresses));
+			Debug.Log("Found the following addresses, use one for connecting: " + string.Join(", ", interNetworkIPAddresses));
 			return interNetworkIPAddresses.First();
 		}
 		Debug.LogError("Did not find any network network adapters with an IPv4 address in the system.\nIf you know your ip address - use it for connecting.");

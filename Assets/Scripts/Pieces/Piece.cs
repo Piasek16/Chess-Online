@@ -39,7 +39,7 @@ public class Piece : MonoBehaviour {
 	protected void RemoveIllegalMoves() {
 		possibleMoves.RemoveAll(move => {
 			if ((NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject().GetComponent<Player>().PlayerColor ? 1 : -1) * ID > 0)
-				return !MoveGenerator.Instance.IsMoveLegal(Position, move);
+				return !ClassicGameLogicManager.Instance.IsMoveLegal(Position, move);
 			return false;
 		});
 	}
