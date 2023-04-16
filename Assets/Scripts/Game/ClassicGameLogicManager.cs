@@ -12,6 +12,10 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			Instance = this;
 	}
 
+	void OnDestroy() {
+		Instance = null;
+	}
+
 	public void CacheInstanceVarables() {
 		boardManager = BoardManager.Instance;
 		gameSessionManager = GameSessionManager.Instance;
@@ -19,14 +23,18 @@ public class ClassicGameLogicManager : MonoBehaviour {
 
 	private Piece movingPiece;
 	private Piece targetPiece;
+	private ClassicGameMove currentMoveData;
 	public void BeforeMove(Move move) {
 		movingPiece = boardManager.GetPieceFromSpace(move.PositionOrigin);
 		targetPiece = boardManager.GetPieceFromSpace(move.PositionDestination);
+		currentMoveData = new ClassicGameMove(gameSessionManager.OfficialFENGameState.IsWhiteTurn, move, movingPiece);
 		if (movingPiece is Pawn && targetPiece is GhostPawn ghost) { // En pessant capture check
 			ghost.ExecuteGhost();
+			currentMoveData.Action |= ClassicGameMove.SpecialAction.EnPassant;
 		}
 		if (targetPiece != null) {
 			boardManager.DestroyPiece(targetPiece);
+			currentMoveData.Action |= ClassicGameMove.SpecialAction.Capture;
 		}
 	}
 
@@ -55,17 +63,22 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			bool castleKingSide = move.PositionDestination.x > move.PositionOrigin.x;
 			if (castleKingSide) {
 				Piece rook = boardManager.GetPieceFromSpace(new Vector2Int(7, movingPiece.Position.y));
-				boardManager.ExecuteMove(new Move(rook.Position, new Vector2Int(5, movingPiece.Position.y)));
+				boardManager.ExecuteMove(new Move(rook.Position, new Vector2Int(5, movingPiece.Position.y)), false);
+				(rook as Rook).FirstMove = false;
+				currentMoveData.Action |= ClassicGameMove.SpecialAction.CastlingK;
 			} else {
 				Piece rook = boardManager.GetPieceFromSpace(new Vector2Int(0, movingPiece.Position.y));
-				boardManager.ExecuteMove(new Move(rook.Position, new Vector2Int(3, movingPiece.Position.y)));
+				boardManager.ExecuteMove(new Move(rook.Position, new Vector2Int(3, movingPiece.Position.y)), false);
+				(rook as Rook).FirstMove = false;
+				currentMoveData.Action |= ClassicGameMove.SpecialAction.CastlingQ;
 			}
 		}
+		ClassicGameMoveLogger.Instance.RecordMove(currentMoveData);
 	}
 
 	public void PromotePawn(Pawn pawn, PieceType pieceType) {
 		if (pawn is null) {
-			Debug.LogError("Attempted to promote a piece that is not a pawn!");
+			Debug.LogError("Attempted to promote a piece that is null!");
 			return;
 		}
 		var promotionSpace = pawn.Position;

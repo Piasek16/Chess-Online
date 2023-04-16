@@ -15,7 +15,7 @@ public readonly struct Move {
 	}
 
 	public override string ToString() {
-		return $"Move from {PositionOrigin} to {PositionDestination}, probably moved piece (from destination): {BoardManager.Instance.GetPieceFromSpace(PositionDestination)}";
+		return $"Move from {PositionOrigin} to {PositionDestination}, probably moved piece (from destination): {BoardManager.Instance.GetPieceFromSpace(PositionDestination).name}";
 	}
 }
 

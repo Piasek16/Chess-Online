@@ -13,7 +13,6 @@ public class CustomLogger : MonoBehaviour {
 	public bool LogBoxHidden { get => !transform.GetChild(0).gameObject.activeSelf; set => transform.GetChild(0).gameObject.SetActive(!value); }
 
 	List<string> logMessages = new();
-	string gameSaveFilePath = null;
 	string logFileName;
 
     void Start() {
@@ -60,24 +59,5 @@ public class CustomLogger : MonoBehaviour {
 		yield return new WaitForEndOfFrame();
 		Canvas.ForceUpdateCanvases();
 		GetComponentInChildren<ScrollRect>().verticalNormalizedPosition = 0f;
-	}
-
-	public void InitGameSave(string GameType) {
-		string gameSaveFileName = GameType + " Game " + System.DateTime.Now;
-		gameSaveFilePath = Application.dataPath + "/" + gameSaveFilePath + ".txt";
-		TextWriter tw = new StreamWriter(gameSaveFilePath);
-		tw.WriteLine("[" + gameSaveFileName + "]");
-		var players = FindObjectsOfType<Player>();
-		string whitePlayer, blackPlayer;
-		if (players[0].PlayerColor == true) {
-			whitePlayer = players[0].name;
-			blackPlayer = players[1].name;
-		} else {
-			whitePlayer = players[1].name;
-			blackPlayer = players[0].name;
-		}
-		tw.WriteLine("White Player Name: " + whitePlayer);
-		tw.WriteLine("Black Player Name: " + blackPlayer);
-		tw.Close();
 	}
 }

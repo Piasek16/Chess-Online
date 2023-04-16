@@ -16,7 +16,8 @@ public class BoardManager : MonoBehaviour {
 	private GameSessionManager gameSessionManager;
 	private ClassicGameLogicManager gameLogicManager;
 	private PiecePool piecePool;
-	private readonly Dictionary<char, PieceType> fenPieces = new Dictionary<char, PieceType>();
+	public static Dictionary<char, PieceType> SymbolToPieceType;
+	public static Dictionary<PieceType, char> PieceTypeToSymbol;
 
 	public BoardTheme BoardTheme;
 	public GameObject[,] board = new GameObject[8, 8];
@@ -30,12 +31,18 @@ public class BoardManager : MonoBehaviour {
 		if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
 		defaultShader = Shader.Find("Unlit/Color");
 		pieces = new Dictionary<int, Piece>();
+		SymbolToPieceType = new Dictionary<char, PieceType>();
 		foreach (Piece piece in piecesPrefabs) {
 			pieces.Add(piece.ID, piece);
-			fenPieces.Add(piece.Symbol, piece.Type);
+			SymbolToPieceType.Add(piece.Symbol, piece.Type);
 		}
+		PieceTypeToSymbol = SymbolToPieceType.ToDictionary(x => x.Value, x => x.Key);
 		piecePool = new PiecePool();
 		GenerateBoard();
+	}
+
+	void OnDestroy() {
+		Instance = null;
 	}
 
 	public void CacheInstanceVariables() {
@@ -271,7 +278,7 @@ public class BoardManager : MonoBehaviour {
 				if (char.IsDigit(c)) {
 					file += (int)char.GetNumericValue(c);
 				} else {
-					SetSpace(file, rank, fenPieces[c]);
+					SetSpace(file, rank, SymbolToPieceType[c]);
 					file++;
 				}
 			}

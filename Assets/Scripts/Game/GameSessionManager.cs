@@ -8,6 +8,11 @@ public class GameSessionManager : NetworkBehaviour {
 		if (Instance != null && Instance != this) Destroy(gameObject); else Instance = this;
 	}
 
+	public override void OnDestroy() {
+		Instance = null;
+		base.OnDestroy();
+	}
+
 	public NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();
 	public NetworkVariable<ulong> BlackPlayerID = new NetworkVariable<ulong>();
 

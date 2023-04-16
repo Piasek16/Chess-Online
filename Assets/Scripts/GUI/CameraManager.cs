@@ -2,8 +2,8 @@ using TMPro;
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour {
-    float targetRight = 8f;
-    float targetLeft = -1f;
+    float targetRight = 10.5f;
+    float targetLeft = -3.5f;
     float horizontalSize;
     Vector3 startingPosition;
     void Start() {
@@ -21,7 +21,7 @@ public class CameraManager : MonoBehaviour {
         transform.SetPositionAndRotation(
             new Vector3(startingPosition.x + (targetLeft - (startingPosition.x - horizontalSize)), startingPosition.y, startingPosition.z), 
             Quaternion.Euler(0, 0, 180));
-        // Correctly mirror side text
+        // Correctly mirror gameboard side text
 		Transform sideTextTransform = BoardManager.Instance.transform.GetChild(0);
 		sideTextTransform.SetPositionAndRotation(
 			new Vector3(sideTextTransform.position.x + 8, sideTextTransform.position.y + 8, sideTextTransform.position.z),
@@ -32,5 +32,10 @@ public class CameraManager : MonoBehaviour {
 			System.Array.Reverse(textArray);
 			tmpText.text = new string(textArray);
 		}
+		// Correctly mirror list of made moves
+		Transform movesListTransform = ClassicGameMoveLogger.Instance.transform.GetChild(0);
+		movesListTransform.SetPositionAndRotation(
+			new Vector3(movesListTransform.position.y, movesListTransform.position.x, movesListTransform.position.z),
+			Quaternion.Euler(0, 0, 180));
 	}
 }
