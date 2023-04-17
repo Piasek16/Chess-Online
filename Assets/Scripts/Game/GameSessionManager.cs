@@ -13,8 +13,8 @@ public class GameSessionManager : NetworkBehaviour {
 		base.OnDestroy();
 	}
 
-	public NetworkVariable<ulong> WhitePlayerID = new NetworkVariable<ulong>();
-	public NetworkVariable<ulong> BlackPlayerID = new NetworkVariable<ulong>();
+	public NetworkVariable<ulong> WhitePlayerID = new();
+	public NetworkVariable<ulong> BlackPlayerID = new();
 
 	public FENGameState OfficialFENGameState;
 	public bool GameStarted = false;
@@ -104,7 +104,7 @@ public class GameSessionManager : NetworkBehaviour {
 	[ClientRpc]
 	private void InvokeTurnChangeLogicClientRpc() {
 		OfficialFENGameState.SetActiveColor(!OfficialFENGameState.IsWhiteTurn);
-		OfficialFENGameState.HalfMoveClock++;
+		OfficialFENGameState.HalfMoveClock = ClassicGameMoveLogger.Instance.MovesSinceLastCaptureOrPawnMove;
 		if (OfficialFENGameState.IsWhiteTurn) OfficialFENGameState.FullMoveNumber++;
 		if (MyTurn) {
 			Debug.Log("[Turn Change] My Turn!");
@@ -129,8 +129,7 @@ public class GameSessionManager : NetworkBehaviour {
 
 	private void DisplayCheckInfo() {
 		if (ClassicGameLogicManager.Instance.IsKingInCheck()) {
-			Debug.Log("My king is in check!");
-			//Play check sound from sound manager
+			Debug.Log("[Game Status] My king is in check!");
 		}
 	}
 
@@ -138,10 +137,10 @@ public class GameSessionManager : NetworkBehaviour {
 	private void EndGameRequestServerRPC(bool kingCheckmated, ServerRpcParams serverRpcParams = default) {
 		if (kingCheckmated) {
 			EndGameClientRPC(true, serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? BlackPlayerID.Value : WhitePlayerID.Value);
-			Debug.Log("Game end by checkmate!");
-			Debug.Log("Winner is " + (serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? "Black player" : "White player"));
+			Debug.Log("[Game Status] Game end by checkmate!");
+			Debug.Log("Winner: " + (serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? "Black player" : "White player"));
 		} else {
-			Debug.Log("Game end by stalemate!");
+			Debug.Log("[Game Status] Game end by stalemate!");
 			EndGameClientRPC(false, default);
 		}
 	}

@@ -16,6 +16,10 @@ public class King : Piece, IFirstMovable {
         }
     }
 
+    public void ReinitializeValues() {
+		FirstMove = false;
+	}
+
     private List<Vector2Int> GetCastlingMoves() {
         List<Vector2Int> moves = new List<Vector2Int>();
         if (!FirstMove) return moves;

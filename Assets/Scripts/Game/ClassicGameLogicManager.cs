@@ -78,8 +78,8 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	}
 
 	public void PromotePawn(Pawn pawn, PieceType pieceType) {
-		if (pawn is null) {
-			Debug.LogError("Attempted to promote a piece that is null!");
+		if (pawn == null) {
+			Debug.LogError("Attempted to promote a piece that is not a pawn!");
 			return;
 		}
 		var promotionSpace = pawn.Position;
@@ -93,7 +93,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			var gameBoard = boardManager.board;
 			foreach (var space in gameBoard) {
 				var piece = boardManager.GetPieceFromSpace(space);
-				if (piece is not null && boardManager.IsPieceMyColor(piece)) {
+				if (piece != null && boardManager.IsPieceMyColor(piece)) {
 					numberOfLegalMoves += piece.PossibleMoves.Count;
 				}
 			}
@@ -109,14 +109,15 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		positionsToCheck.AddRange(MoveGenerator.Instance.GetKnightMoves(king.Position));
 		positionsToCheck.RemoveAll(move => BoardManager.Instance.board[move.x, move.y].transform.childCount <= 0
 			|| BoardManager.Instance.board[move.x, move.y].GetComponentInChildren<Piece>().ID * king.ID > 0);
-		if (positionsToCheck.Count == 0) return false;
+		if (positionsToCheck.Count == 0)
+			return false;
 		foreach (Vector2Int position in positionsToCheck) {
 			var possiblyThreateningPiece = BoardManager.Instance.GetPieceFromSpace(position);
 			var possiblePieceMoves = possiblyThreateningPiece.PossibleMoves;
 			foreach (var move in possiblePieceMoves) {
 				var piece = BoardManager.Instance.GetPieceFromSpace(move);
-				if (piece != null)
-					if (piece.GetType() == typeof(King)) return true;
+				if (piece != null && piece is King)
+					return true;
 			}
 		}
 		return false;

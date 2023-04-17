@@ -15,4 +15,8 @@ public class Pawn : Piece, IFirstMovable {
 			return possibleMoves;
 		}
 	}
+
+	public void ReinitializeValues() {
+		FirstMove = false;
+	}
 }

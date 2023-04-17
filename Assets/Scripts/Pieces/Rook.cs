@@ -14,4 +14,8 @@ public class Rook : Piece, IFirstMovable {
             return possibleMoves;
         } 
     }
+
+    public void ReinitializeValues() {
+		FirstMove = false;
+	}
 }

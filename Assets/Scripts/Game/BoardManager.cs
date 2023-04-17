@@ -134,8 +134,8 @@ public class BoardManager : MonoBehaviour {
 			Debug.LogWarning("Player tried to get a piece from a non existent position " + new Vector2Int(positionX, positionY));
 			return null;
 		}
-		GameObject _space = board[positionX, positionY];
-		if (_space.transform.childCount >= 1) return _space.transform.GetComponentInChildren<Piece>();
+		GameObject space = board[positionX, positionY];
+		if (space.transform.childCount >= 1) return space.transform.GetComponentInChildren<Piece>();
 		return null;
 	}
 
@@ -165,7 +165,8 @@ public class BoardManager : MonoBehaviour {
 		List<T> pieces = new List<T>();
 		foreach (var tile in board) {
 			var piece = GetPieceFromSpace(tile);
-			if (piece is T target) pieces.Add(target);
+			if (piece is T target)
+				pieces.Add(target);
 		}
 		return pieces;
 	}
@@ -203,6 +204,8 @@ public class BoardManager : MonoBehaviour {
 		if (piece != null) {
 			piece.transform.parent = null;
 			piecePool.ReturnPiece(piece);
+		} else {
+			Debug.LogWarning($"Tried to destroy a null piece: {piece.name} at {piece.Position}!");
 		}
 	}
 
@@ -269,6 +272,7 @@ public class BoardManager : MonoBehaviour {
 	/// <param name="fenBoardState">A board part(first part) of a string containing a FEN chess game state</param>
 	public void LoadBoardStateFromFEN(string fenBoardState) {
 		CleanBoard();
+		Debug.Log($"Loading boardstate: {fenBoardState}");
 		int file = 0, rank = 7;
 		foreach (char c in fenBoardState) {
 			if (c == '/') {
@@ -285,6 +289,7 @@ public class BoardManager : MonoBehaviour {
 		}
 		FindAndUpdateKings();
 		SetPawnFirstMovePrivileges();
+		Debug.Log("Boardstate loaded, kings updated and pawn privileges set!");
 	}
 
 	private void FindAndUpdateKings() {
@@ -351,7 +356,8 @@ public class BoardManager : MonoBehaviour {
 		Debug.Log("Loading en passant target: " + fenEnPassantTarget);
 		var enPassantTarget = BoardLocationToVector2Int(fenEnPassantTarget);
 		var possibleParentLocation = new Vector2Int(enPassantTarget.x, enPassantTarget.y + 1);
-		if (GetPieceFromSpace(possibleParentLocation) == null) possibleParentLocation.y -= 2;
+		if (GetPieceFromSpace(possibleParentLocation) == null)
+			possibleParentLocation.y -= 2;
 		SummonGhostPawn(possibleParentLocation, enPassantTarget);
 	}
 
@@ -392,22 +398,19 @@ public class BoardManager : MonoBehaviour {
 	public string GetFENCastlingRights() {
 		string fenCastlingRights = string.Empty;
 		if (kings[0].FirstMove) {
-			if ((GetPieceFromSpace(7, 0) as Rook)?.FirstMove == true) {
+			if (GetPieceFromSpace(7, 0) is Rook and { FirstMove: true })
 				fenCastlingRights += "K";
-			}
-			if ((GetPieceFromSpace(0, 0) as Rook)?.FirstMove == true) {
+			if (GetPieceFromSpace(0, 0) is Rook and { FirstMove: true })
 				fenCastlingRights += "Q";
-			}
 		}
 		if (kings[1].FirstMove) {
-			if ((GetPieceFromSpace(7, 7) as Rook)?.FirstMove == true) {
+			if (GetPieceFromSpace(7, 7) is Rook and { FirstMove: true })
 				fenCastlingRights += "k";
-			}
-			if ((GetPieceFromSpace(0, 7) as Rook)?.FirstMove == true) {
+			if (GetPieceFromSpace(0, 7) is Rook and { FirstMove: true })
 				fenCastlingRights += "q";
-			}
 		}
-		if (string.IsNullOrEmpty(fenCastlingRights)) fenCastlingRights = "-";
+		if (string.IsNullOrEmpty(fenCastlingRights))
+			fenCastlingRights = "-";
 		return fenCastlingRights;
 	}
 
@@ -417,7 +420,7 @@ public class BoardManager : MonoBehaviour {
 	/// <returns>Square target of EnPassant</returns>
 	public string GetFENEnPassantTarget() {
 		var ghostPawns = FindPiecesOfType<GhostPawn>();
-		if (ghostPawns.Count > 0) 
+		if (ghostPawns.Count > 0)
 			return Vector2IntToBoardLocation(ghostPawns[0].Position);
 		return "-";
 	}
@@ -488,7 +491,7 @@ public class BoardManager : MonoBehaviour {
 		}
 
 		private GhostPawn CreateGhostPawn() {
-			GameObject ghost = new GameObject("GhostPawn");
+			GameObject ghost = new("GhostPawn");
 			ghost.transform.position = poolPosition;
 			ghost.transform.parent = poolObject.transform;
 			ghost.SetActive(false);
@@ -517,6 +520,9 @@ public class BoardManager : MonoBehaviour {
 		/// </summary>
 		/// <param name="piece">Piece to return</param>
 		public void ReturnPiece(Piece piece) {
+			if (piece is IFirstMovable firstMovable) {
+				firstMovable.ReinitializeValues();
+			}
 			if (piece is GhostPawn ghost) {
 				ReturnGhost(ghost);
 				return;

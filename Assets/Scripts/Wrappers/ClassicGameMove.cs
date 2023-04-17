@@ -7,7 +7,8 @@ public class ClassicGameMove {
 	public int MoveNumber;
 	public bool ByWhitePlayer;
 	public Move Move;
-	public Piece MovingPiece;
+	public readonly Piece MovingPiece;
+	public readonly PieceType MovingPieceType;
 	public SpecialAction Action;
 	public PieceType PromotedTo;
 	private readonly AmbiguityLevel _ambiguity;
@@ -36,6 +37,7 @@ public class ClassicGameMove {
 		Move = move;
 		MovingPiece = movingPiece;
 		_ambiguity = DetermineAmbiguity();
+		MovingPieceType = movingPiece.Type;
 	}
 
 	/// <summary>

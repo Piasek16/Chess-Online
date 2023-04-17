@@ -4,4 +4,5 @@
 /// </summary>
 public interface IFirstMovable {
 	bool FirstMove { get; set; }
+	void ReinitializeValues();
 }

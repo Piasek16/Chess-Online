@@ -8,6 +8,7 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 	public static ClassicGameMoveLogger Instance { get; private set; }
 	public List<ClassicGameMove> GameMoves = new();
 	public GameResult Result { get; private set; } = GameResult.NotDetermined;
+	public int MovesSinceLastCaptureOrPawnMove { get; private set; } = 0;
 
 	void Awake() {
 		if (Instance != null && Instance != this)
@@ -24,11 +25,19 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 		GameMoves.Add(move);
 		move.MoveNumber = GameMoves.Count;
 		UpdateMovesMadeDisplay();
+		UpdateHalfMoves();
 	}
 
 	private void UpdateMovesMadeDisplay() {
 		TMP_Text movesMadeDisplay = transform.GetChild(0).GetChild(1).GetComponentInChildren<TMP_Text>();
 		movesMadeDisplay.text = GetMovesLog();
+	}
+
+	private void UpdateHalfMoves() {
+		if (GameMoves[^1].MovingPiece is Pawn || GameMoves[^1].Action.HasFlag(ClassicGameMove.SpecialAction.Capture))
+			MovesSinceLastCaptureOrPawnMove = 0;
+		else
+			MovesSinceLastCaptureOrPawnMove++;
 	}
 
 	public enum GameResult {
@@ -59,7 +68,7 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 	}
 
 	public void SaveGame() {
-		if (Result == GameResult.NotDetermined){
+		if (Result == GameResult.NotDetermined) {
 			Debug.LogError("Cannot save game before it is finished!");
 			return;
 		}

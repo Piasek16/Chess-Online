@@ -5,14 +5,14 @@ using System.Collections.Generic;
 using TMPro;
 
 public class Player : NetworkBehaviour {
-	public NetworkVariable<FixedString32Bytes> PlayerName = new NetworkVariable<FixedString32Bytes>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+	public NetworkVariable<FixedString32Bytes> PlayerName = new(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
 	public bool PlayerColor;
 	public Color32 preMoveColorWhite;
 	public Color32 preMoveColorBlack;
 
-	Vector2 whitePosition = new Vector2(-2f, 1f);
-	Vector2 blackPosition = new Vector2(-2f, 6f);
+	Vector2 whitePosition = new(-2f, 1f);
+	Vector2 blackPosition = new(-2f, 6f);
 	TMP_Text usernameText;
 
 	public override void OnNetworkSpawn() {
@@ -20,10 +20,11 @@ public class Player : NetworkBehaviour {
 	}
 
 	public void SetupPlayerData(ulong whitePlayerID, ulong blackPlayerID) {
+		Debug.Log("[Client] Setting up player data for client ID: " + OwnerClientId);
 		Debug.Log("White player id: " + whitePlayerID);
 		Debug.Log("Black player id: " + blackPlayerID);
 		PlayerColor = OwnerClientId == whitePlayerID;
-		Debug.Log("Player color set to: " + PlayerColor);
+		Debug.Log("Player color set to: " + (PlayerColor ? "white" : "black"));
 		if (PlayerColor) {
 			transform.position = whitePosition;
 		} else {
@@ -58,7 +59,7 @@ public class Player : NetworkBehaviour {
 	Piece heldPiece = null; // (For display) Copy of the piece that is chosen to move by the player
 	Piece movingPiece; // The piece that the player is choosing to move
 	Vector2Int? arrowPointerBeginning = null;
-	List<GameObject> pointerArrows = new List<GameObject>();
+	List<GameObject> pointerArrows = new();
 
 	public void OnMyTurn() {
 		// TODO: something something premoves
@@ -91,7 +92,10 @@ public class Player : NetworkBehaviour {
 	}
 
 	void DropPieceAt(Vector2Int dropLocation) {
-		if (heldPiece == null || movingPiece == null) return;
+		if (heldPiece == null || movingPiece == null) {
+			Debug.LogError("Cannot drop piece - held piece or moving piece is null!");
+			return;
+		}
 		Move move = new(movingPiece.Position, dropLocation);
 		movingPiece.ResetPossibleMovesHighlight();
 		if (movingPiece.PossibleMoves.Contains(dropLocation)) {
