@@ -13,6 +13,8 @@ using TMPro;
 using System.Net.Sockets;
 using System.Net;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+using System.Collections;
 
 public class LoginSessionManager : MonoBehaviour {
 	public static LoginSessionManager Instance { get; private set; }
@@ -32,6 +34,7 @@ public class LoginSessionManager : MonoBehaviour {
 	private TMP_Text promptField;
 	private Toggle relayServiceToggle;
 	private UnityTransport unityTransport;
+	private GameObject connectingStatusCanvas;
 
 	void Start() {
 		usernameCanvas = transform.GetChild(0).gameObject;
@@ -46,12 +49,14 @@ public class LoginSessionManager : MonoBehaviour {
 		if (Camera.main.aspect < 1.32f)
 			Debug.LogWarning("Aspect ratio is too small for the game to be played properly! - Use an aspect ratio of 4:3 or higher.");
 		SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+		usernameCanvas.GetComponentInChildren<TMP_InputField>().onSubmit.AddListener(username => { PassUsername(username); AdvanceLoginCanvas(); });
+		connectionCanvas.GetComponentInChildren<TMP_InputField>().onSubmit.AddListener(target => { PassConnectionTarget(target); ConnectClient(); });
+		connectingStatusCanvas = transform.GetChild(3).gameObject;
 	}
 
 	private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1) {
 		if (arg1.buildIndex != 0) return;
 		unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-		GameObject.Find("InitialPromptCanvas").SetActive(false);
 	}
 
 	void OnDestroy() {
@@ -78,6 +83,12 @@ public class LoginSessionManager : MonoBehaviour {
 		if (Username.Length > 29) { Debug.LogError("Username can be at most 29 characters long!"); return; }
 		usernameCanvas.SetActive(false);
 		connectionCanvas.SetActive(true);
+		StartCoroutine(SelectNextCanvasAtEndOfFrame());
+	}
+
+	IEnumerator SelectNextCanvasAtEndOfFrame() {
+		yield return new WaitForEndOfFrame();
+		connectionCanvas.GetComponentInChildren<TMP_InputField>().Select();
 	}
 
 	private void UpdateConnectionPrompt(bool relayStatus) {
@@ -95,6 +106,7 @@ public class LoginSessionManager : MonoBehaviour {
 	}
 
 	public void ConnectClient() {
+		StartAnimatingConnectingProcess();
 		if (relayServiceToggle.isOn) {
 			ConnectRelayClient();
 		} else {
@@ -102,9 +114,30 @@ public class LoginSessionManager : MonoBehaviour {
 		}
 	}
 
+	void StartAnimatingConnectingProcess() {
+		connectingStatusCanvas.SetActive(true);
+		StartCoroutine(nameof(AnimateConnectingStatus));
+	}
+
+	IEnumerator AnimateConnectingStatus() {
+		var field = connectingStatusCanvas.transform.GetChild(0).GetChild(0).GetComponent<TMP_Text>();
+		while (true) {
+			field.text += ".";
+			if (field.text.Length >= 4 && field.text[^4..] == "....")
+				field.text = field.text.Replace("....", "");
+			yield return new WaitForSeconds(1);
+		}
+	}
+
+	void StopAnimatingConnectingProcess() {
+		StopCoroutine(nameof(AnimateConnectingStatus));
+		connectingStatusCanvas.SetActive(false);
+	}
+
 	private async void ConnectRelayClient() {
 		if (!AuthenticationService.Instance.IsSignedIn) {
 			Debug.LogError("Player not yet authenticated! Wait a couple of seconds before trying again.");
+			StopAnimatingConnectingProcess();
 			return;
 		}
 
@@ -115,6 +148,7 @@ public class LoginSessionManager : MonoBehaviour {
 		} catch (Exception e) {
 			Debug.LogError("Failed to join relay game with code: " + RelayCode);
 			Debug.LogError(e.Message);
+			StopAnimatingConnectingProcess();
 			return;
 		}
 
@@ -133,6 +167,7 @@ public class LoginSessionManager : MonoBehaviour {
 
 		if (unityTransport.ConnectionData.ServerEndPoint == default) {
 			Debug.LogError("The given IP address is invalid. Make sure the IP address is correct and try again.");
+			StopAnimatingConnectingProcess();
 			return;
 		}
 
@@ -145,12 +180,14 @@ public class LoginSessionManager : MonoBehaviour {
 			Debug.Log("Client successfully started!\nConnecting to server...");
 		} else {
 			Debug.Log("Client could not be started.");
+			StopAnimatingConnectingProcess();
 		}
 	}
 
 	private void Singleton_OnClientConnectedCallback(ulong obj) {
 		Debug.Log("Client successfully connected!");
 		connectionCanvas.SetActive(false);
+		StopAnimatingConnectingProcess();
 	}
 
 	private void Singleton_OnClientDisconnectCallback(ulong obj) {
@@ -158,9 +195,16 @@ public class LoginSessionManager : MonoBehaviour {
 		connectionCanvas.SetActive(true);
 		if (SceneManager.GetActiveScene().buildIndex != 0) {
 			NetworkManager.Singleton.Shutdown();
-			Destroy(NetworkManager.Singleton.gameObject);
 			SceneManager.LoadScene(0);
+		} else {
+			StopAnimatingConnectingProcess();
 		}
+	}
+
+	public void CancelConnectionAttempt() {
+		Debug.Log("Connection attempt cancelled.");
+		NetworkManager.Singleton.Shutdown();
+		StopAnimatingConnectingProcess();
 	}
 
 	public void QuitFromOwnLobbyCallback() {
@@ -212,7 +256,7 @@ public class LoginSessionManager : MonoBehaviour {
 
 	string GetLocalIPAddress() {
 		var host = Dns.GetHostEntry(Dns.GetHostName());
-		System.Collections.Generic.List<string> interNetworkIPAddresses = new();
+		List<string> interNetworkIPAddresses = new();
 		foreach (var ip in host.AddressList) {
 			if (ip.AddressFamily == AddressFamily.InterNetwork) {
 				interNetworkIPAddresses.Add(ip.ToString());
@@ -329,7 +373,7 @@ public class LoginSessionManager : MonoBehaviour {
 	}
 
 	void ExpandPromptText(string activity) {
-		var textField = transform.GetChild(2).transform.GetChild(1).GetComponent<TMP_Text>();
+		var textField = transform.GetChild(2).GetChild(0).GetChild(0).GetComponent<TMP_Text>();
 		textField.text = $"Quit from {activity}?";
 	}
 

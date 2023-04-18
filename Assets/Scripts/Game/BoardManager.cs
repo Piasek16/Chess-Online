@@ -204,8 +204,6 @@ public class BoardManager : MonoBehaviour {
 		if (piece != null) {
 			piece.transform.parent = null;
 			piecePool.ReturnPiece(piece);
-		} else {
-			Debug.LogWarning($"Tried to destroy a null piece: {piece.name} at {piece.Position}!");
 		}
 	}
 
