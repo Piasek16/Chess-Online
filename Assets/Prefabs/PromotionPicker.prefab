@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2245271788761309040
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2779579612970843023}
+  - component: {fileID: 8162793878585963797}
+  m_Layer: 0
+  m_Name: PromotionPicker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2779579612970843023
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2245271788761309040}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8162793878585963797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2245271788761309040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47833f9bf6b8b174bb4df8631ed2a7ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _whitePieces:
+  - {fileID: 6042540757240198209, guid: c8afa3f90d14c994899c9ffacf20c94e, type: 3}
+  - {fileID: 6111692611447246046, guid: 1dfbcb03a2777a14eb79960fd5484cb9, type: 3}
+  - {fileID: -8303279025032983307, guid: c1d24cfdefa0fba4a9882f5658c472f0, type: 3}
+  - {fileID: 3422238498758816543, guid: 1e459b9eb6210f5409f1d70a64813fd6, type: 3}
+  _blackPieces:
+  - {fileID: 7783617293302278041, guid: 50ff0995ce05b724281d076619562635, type: 3}
+  - {fileID: 7696338096473811077, guid: 976691844b0b6b94aa6c49820f626048, type: 3}
+  - {fileID: 2915182314867318926, guid: b68eedfd28b2aad4dadec64ad1245a39, type: 3}
+  - {fileID: 3965885595701310013, guid: 473400df95452d944af3cbdcb29be8c8, type: 3}
+  _containerBackground: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}

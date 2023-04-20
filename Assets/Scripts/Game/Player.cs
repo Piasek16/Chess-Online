@@ -78,36 +78,43 @@ public class Player : NetworkBehaviour {
 	}
 
 	void PickUpPiece(Piece piece) {
-		if (piece == null || !BoardManager.Instance.IsPieceMyColor(piece) || piece is GhostPawn) return;
+		if (piece == null || !BoardManager.Instance.IsPieceMyColor(piece) || piece is GhostPawn || promotingMove != null) 
+			return;
 		DestroyHeldPiece();
 		piece.HighlightPossibleMoves();
 		heldPiece = Instantiate(piece, null); // copy happens before spirete renderer is disabled
+		heldPiece.GetComponent<SpriteRenderer>().sortingOrder = 10;
 		piece.GetComponent<SpriteRenderer>().enabled = false; // hide the original piece
 		movingPiece = piece;
 		RemovePointerArrows();
 	}
 
 	void HoldPiece() {
-		heldPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -0.3f);
+		heldPiece.transform.position = new Vector3(mousePos.x, mousePos.y, 0);
 	}
 
 	void DropPieceAt(Vector2Int dropLocation) {
-		if (heldPiece == null || movingPiece == null) {
-			Debug.LogError("Cannot drop piece - held piece or moving piece is null!");
+		if (heldPiece == null || movingPiece == null || promotingMove != null)
 			return;
-		}
 		Move move = new(movingPiece.Position, dropLocation);
 		movingPiece.ResetPossibleMovesHighlight();
 		if (movingPiece.PossibleMoves.Contains(dropLocation)) {
 			if (!GameSessionManager.Instance.MyTurn) {
 				// TODO: Register pre move
 			} else {
+				ClassicGameLogicManager.Instance.OnMoveFinished += ClassicGameLogicManager_OnMoveFinished;
 				BoardManager.Instance.ExecuteMove(move);
-				GameSessionManager.Instance.RelayMoveToOtherPlayerServerRPC(move);
-				GameSessionManager.Instance.EndMyTurn();
 			}
 		}
 		DestroyHeldPiece();
+	}
+
+	private void ClassicGameLogicManager_OnMoveFinished(ClassicGameMove moveData) {
+		GameSessionManager.Instance.RelayMoveToOtherPlayerServerRPC(moveData.Move);
+		if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Promotion))
+			GameSessionManager.Instance.RelayPawnPromotionServerRPC(moveData.Move.PositionDestination, moveData.PromotedTo);
+		GameSessionManager.Instance.EndMyTurn();
+		ClassicGameLogicManager.Instance.OnMoveFinished -= ClassicGameLogicManager_OnMoveFinished;
 	}
 
 	void DestroyHeldPiece() {
@@ -117,6 +124,16 @@ public class Player : NetworkBehaviour {
 			movingPiece.GetComponent<SpriteRenderer>().enabled = true;
 		heldPiece = null;
 		movingPiece = null;
+	}
+
+	ClassicGameMove promotingMove;
+	public void EnterPromotion(ClassicGameMove move) {
+		promotingMove = move;
+	}
+
+	public void CompletePromotion(PieceType pieceType) {
+		ClassicGameLogicManager.Instance.PromotePawn(promotingMove.MovingPiece as Pawn, pieceType);
+		promotingMove = null;
 	}
 
 	void SetArrowPointerBeginning(Vector2Int location) {

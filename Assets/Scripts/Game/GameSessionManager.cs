@@ -189,7 +189,7 @@ public class GameSessionManager : NetworkBehaviour {
 	private ClientRpcParams GetOtherPlayerTarget(ServerRpcParams senderParams) {
 		ulong serverClientID = NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId;
 		bool isSenderServer = senderParams.Receive.SenderClientId == serverClientID;
-		ulong opponentID = OpponentPlayer.OwnerClientId; // verify change
+		ulong opponentID = OpponentPlayer.OwnerClientId;
 		return new ClientRpcParams {
 			Send = new ClientRpcSendParams {
 				TargetClientIds = new ulong[] {

@@ -5,16 +5,20 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	public static ClassicGameLogicManager Instance { get; private set; }
 	private BoardManager boardManager;
 	private GameSessionManager gameSessionManager;
+	
+	[SerializeField] private PromotionPicker promotionPicker;
 
 	void Awake() {
 		if (Instance != null && Instance != this)
 			Destroy(gameObject);
 		else
 			Instance = this;
+		OnMoveFinished += ClassicGameLogicManager_OnMoveFinished;
 	}
 
 	void OnDestroy() {
 		Instance = null;
+		OnMoveFinished -= ClassicGameLogicManager_OnMoveFinished;
 	}
 
 	public void CacheInstanceVarables() {
@@ -25,6 +29,8 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	private Piece movingPiece;
 	private Piece targetPiece;
 	private ClassicGameMove currentMoveData;
+	public delegate void MoveFinishedHandler(ClassicGameMove moveData);
+	public event MoveFinishedHandler OnMoveFinished;
 	public void BeforeMove(Move move) {
 		movingPiece = boardManager.GetPieceFromSpace(move.PositionOrigin);
 		targetPiece = boardManager.GetPieceFromSpace(move.PositionDestination);
@@ -57,7 +63,11 @@ public class ClassicGameLogicManager : MonoBehaviour {
 				gameSessionManager.OfficialFENGameState.EnPassantTarget = BoardManager.Vector2IntToBoardLocation(ghostLocation);
 			}
 			if (movingPiece.Position.y == (isPieceWhite ? 7 : 0)) {
-				// TODO: Send local player prompt to choose promotion piece (potentially await or handle choosen piece in another method)
+				currentMoveData.Action |= ClassicGameMove.SpecialAction.Promotion;
+				if (BoardManager.Instance.IsPieceMyColor(movingPiece)) {
+					Instantiate(promotionPicker, (Vector3Int)movingPiece.Position, gameSessionManager.LocalPlayer.PlayerColor ? Quaternion.identity : Quaternion.Euler(0, 0, 180));
+					gameSessionManager.LocalPlayer.EnterPromotion(currentMoveData);
+				}
 			}
 		}
 		if (movingPiece is King && Vector2Int.Distance(move.PositionOrigin, move.PositionDestination) == 2) { // Castling check
@@ -74,7 +84,12 @@ public class ClassicGameLogicManager : MonoBehaviour {
 				currentMoveData.Action |= ClassicGameMove.SpecialAction.CastlingQ;
 			}
 		}
-		ClassicGameMoveLogger.Instance.RecordMove(currentMoveData);
+		if (!currentMoveData.Action.HasFlag(ClassicGameMove.SpecialAction.Promotion))
+			OnMoveFinished?.Invoke(currentMoveData);
+	}
+
+	private void ClassicGameLogicManager_OnMoveFinished(ClassicGameMove moveData) {
+		ClassicGameMoveLogger.Instance.RecordMove(moveData);
 	}
 
 	public void PromotePawn(Pawn pawn, PieceType pieceType) {
@@ -85,6 +100,8 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		var promotionSpace = pawn.Position;
 		boardManager.DestroyPiece(pawn);
 		boardManager.SetSpace(promotionSpace, pieceType);
+		currentMoveData.PromotedTo = pieceType;
+		OnMoveFinished?.Invoke(currentMoveData);
 	}
 
 	public int NumberOfLegalMoves {

@@ -1659,6 +1659,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31b816b4fabb7004b8d1084cc7ae76af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  promotionPicker: {fileID: 8162793878585963797, guid: 6da48d1f2cfed1945b1110552beff71c, type: 3}
 --- !u!4 &1516980482
 Transform:
   m_ObjectHideFlags: 0
