@@ -34,7 +34,8 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 	}
 
 	private void UpdateHalfMoves() {
-		if (GameMoves[^1].MovingPiece is Pawn || GameMoves[^1].Action.HasFlag(ClassicGameMove.SpecialAction.Capture))
+		var lastMove = GameMoves[^1];
+		if (lastMove.MovingPieceType == PieceType.WPawn || lastMove.MovingPieceType == PieceType.BPawn || lastMove.Action.HasFlag(ClassicGameMove.SpecialAction.Capture))
 			MovesSinceLastCaptureOrPawnMove = 0;
 		else
 			MovesSinceLastCaptureOrPawnMove++;

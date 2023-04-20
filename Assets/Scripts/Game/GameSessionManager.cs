@@ -17,7 +17,7 @@ public class GameSessionManager : NetworkBehaviour {
 	public NetworkVariable<ulong> BlackPlayerID = new();
 
 	public FENGameState OfficialFENGameState;
-	public bool GameStarted = false;
+	public bool GameRunning = false;
 	public Player LocalPlayer = null;
 	public Player OpponentPlayer = null;
 	public bool MyTurn => LocalPlayer.PlayerColor == OfficialFENGameState.IsWhiteTurn;
@@ -82,7 +82,7 @@ public class GameSessionManager : NetworkBehaviour {
 		LocalPlayer.SetupPlayerData(whitePlayerID, blackPlayerID);
 		OpponentPlayer?.SetupPlayerData(whitePlayerID, blackPlayerID); // Added null propagation to enable single player move testing
 		LoadStateFromFEN(fenGameState);
-		GameStarted = true;
+		GameRunning = true;
 	}
 
 	public void LoadStateFromFEN(string FENGameState) {
@@ -109,28 +109,37 @@ public class GameSessionManager : NetworkBehaviour {
 		if (MyTurn) {
 			Debug.Log("[Turn Change] My Turn!");
 			OnMyTurn();
-			DisplayCheckInfo();
 		} else {
 			Debug.Log("[Turn Change] Opponent's turn!");
 		}
 	}
 
 	private void OnMyTurn() {
-		var numberOfLegalMoves = gameLogicManager.NumberOfLegalMoves;
-		Debug.Log($"No of legal moves: {numberOfLegalMoves}");
-		if (ClassicGameLogicManager.Instance.IsKingInCheck() && numberOfLegalMoves == 0) {
-			EndGameRequestServerRPC(true); //checkmate
-		} else if (numberOfLegalMoves == 0) {
-			EndGameRequestServerRPC(false); //stalemate
+		var numberOfLegalMoves = gameLogicManager.MyNumberOfLegalMoves;
+		Debug.Log($"My number of legal moves: {numberOfLegalMoves}");
+		LocalPlayer.OnMyTurn();
+	}
+
+	public void OnCheck(bool checkedKingColor) {
+		if (checkedKingColor == LocalPlayer.PlayerColor) {
+			Debug.Log("[Notification] My king is in check!");
 		} else {
-			LocalPlayer.OnMyTurn();
+			Debug.Log("[Notification] Opponent's king is in check!");
 		}
 	}
 
-	private void DisplayCheckInfo() {
-		if (ClassicGameLogicManager.Instance.IsKingInCheck()) {
-			Debug.Log("[Game Status] My king is in check!");
+	public void OnCheckmate(bool checkmatedKingColor) {
+		if (checkmatedKingColor == LocalPlayer.PlayerColor) {
+			Debug.Log("[Notification] My king is checkmated!");
+			EndGameRequestServerRPC(true);
+		} else {
+			Debug.Log("[Notification] Opponent's king is checkmated!");
 		}
+	}
+
+	public void OnStalemate() {
+		Debug.Log("[Notification] Stalemate!");
+		EndGameRequestServerRPC(false);
 	}
 
 	[ServerRpc(RequireOwnership = false)]
@@ -159,6 +168,7 @@ public class GameSessionManager : NetworkBehaviour {
 			//Display draw canvas
 			Debug.Log("Game end - stalemate");
 		}
+		GameRunning = false;
 	}
 
 	[ServerRpc(RequireOwnership = false)]

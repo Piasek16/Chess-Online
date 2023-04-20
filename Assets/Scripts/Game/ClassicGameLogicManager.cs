@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -89,7 +90,29 @@ public class ClassicGameLogicManager : MonoBehaviour {
 	}
 
 	private void ClassicGameLogicManager_OnMoveFinished(ClassicGameMove moveData) {
+		AnalyzeForCheck(moveData);
+		AnalyzeForCheckmate(moveData);
 		ClassicGameMoveLogger.Instance.RecordMove(moveData);
+		bool pieceColor = (int)moveData.MovingPieceType > 0;
+		if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Checkmate)) {
+			gameSessionManager.OnCheckmate(!pieceColor);
+		} else if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Check)) {
+			gameSessionManager.OnCheck(!pieceColor);
+		} else if (MyNumberOfLegalMoves == 0) {
+			gameSessionManager.OnStalemate();
+		}
+	}
+
+	private void AnalyzeForCheck(ClassicGameMove move) {
+		if (IsKingInCheck(!move.MovingPieceType.GetColor())) {
+			move.Action |= ClassicGameMove.SpecialAction.Check;
+		}
+	}
+
+	private void AnalyzeForCheckmate(ClassicGameMove move) {
+		if (move.Action.HasFlag(ClassicGameMove.SpecialAction.Check) && GetNumberOfLegalMoves(!move.MovingPieceType.GetColor()) == 0) {
+			move.Action |= ClassicGameMove.SpecialAction.Checkmate;
+		}
 	}
 
 	public void PromotePawn(Pawn pawn, PieceType pieceType) {
@@ -104,7 +127,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		OnMoveFinished?.Invoke(currentMoveData);
 	}
 
-	public int NumberOfLegalMoves {
+	public int MyNumberOfLegalMoves {
 		get {
 			int numberOfLegalMoves = 0;
 			var gameBoard = boardManager.board;
@@ -118,8 +141,25 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		}
 	}
 
-	public bool IsKingInCheck() {
-		var king = BoardManager.Instance.LocalPlayerKing;
+	public int GetNumberOfLegalMoves(bool playerColor) {
+		int numberOfLegalMoves = 0;
+		var gameBoard = boardManager.board;
+		foreach (var space in gameBoard) {
+			var piece = boardManager.GetPieceFromSpace(space);
+			if (piece != null && piece.Type.GetColor() == playerColor) {
+				numberOfLegalMoves += piece.PossibleMoves.Count;
+			}
+		}
+		return numberOfLegalMoves;
+	}
+
+	/// <summary>
+	/// Checks if the king is in check.
+	/// </summary>
+	/// <param name="kingColor">Color of the king - true for white, false for black</param>
+	/// <returns>True if the specified king is in check, false otherwise.</returns>
+	public bool IsKingInCheck(bool kingColor) {
+		var king = BoardManager.Instance.Kings[kingColor ? 0 : 1];
 		var positionsToCheck = new List<Vector2Int>();
 		positionsToCheck.AddRange(MoveGenerator.Instance.GetDiagonalMoves(king.Position));
 		positionsToCheck.AddRange(MoveGenerator.Instance.GetVerticalMoves(king.Position));
@@ -130,24 +170,41 @@ public class ClassicGameLogicManager : MonoBehaviour {
 			return false;
 		foreach (Vector2Int position in positionsToCheck) {
 			var possiblyThreateningPiece = BoardManager.Instance.GetPieceFromSpace(position);
-			var possiblePieceMoves = possiblyThreateningPiece.PossibleMoves;
+			var possiblePieceMoves = possiblyThreateningPiece.GetAllMoves();
 			foreach (var move in possiblePieceMoves) {
 				var piece = BoardManager.Instance.GetPieceFromSpace(move);
-				if (piece != null && piece is King)
+				if (piece is King checkedKing && checkedKing.ID == king.ID)
 					return true;
 			}
 		}
 		return false;
 	}
 
-	public bool IsMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
+	[Obsolete("Legacy version - you should use the move struct version instead.")]
+	public bool IsMyMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
 		var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
 		if (oldPiece != null) oldPiece.transform.parent = null;
 		Move move = new(oldPosition, newPosition);
 		BoardManager.Instance.ExecuteMove(move, false);
-		var check = IsKingInCheck();
+		var check = IsKingInCheck(gameSessionManager.LocalPlayer.PlayerColor);
 		BoardManager.Instance.ExecuteMove(move.Reverse, false);
 		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
+		return !check;
+	}
+
+	/// <summary>
+	/// Checks if the move is legal for the player with the specified color.
+	/// </summary>
+	/// <param name="move">Move to check</param>
+	/// <param name="forPlayerWithColor">Player color, white - true, black - false</param>
+	/// <returns>Boolean indicating whether a given move is legal.</returns>
+	public bool IsMoveLegal(Move move, bool forPlayerWithColor) {
+		var oldPiece = BoardManager.Instance.GetPieceFromSpace(move.PositionDestination);
+		if (oldPiece != null) oldPiece.transform.parent = null;
+		BoardManager.Instance.ExecuteMove(move, false);
+		var check = IsKingInCheck(forPlayerWithColor);
+		BoardManager.Instance.ExecuteMove(move.Reverse, false);
+		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[move.PositionDestination.x, move.PositionDestination.y].transform;
 		return !check;
 	}
 }

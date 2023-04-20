@@ -7,7 +7,7 @@ public class ClassicGameMove {
 	public int MoveNumber;
 	public bool ByWhitePlayer;
 	public Move Move;
-	public readonly Piece MovingPiece;
+	private readonly Piece MovingPiece;
 	public readonly PieceType MovingPieceType;
 	public SpecialAction Action;
 	public PieceType PromotedTo;

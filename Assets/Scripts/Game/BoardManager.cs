@@ -21,7 +21,10 @@ public class BoardManager : MonoBehaviour {
 
 	public BoardTheme BoardTheme;
 	public GameObject[,] board = new GameObject[8, 8];
-	public King LocalPlayerKing;
+	/// <summary>
+	/// An array containinng the two kings of the game. White King is at index 0, Black King is at index 1.
+	/// </summary>
+	public King[] Kings => kings;
 
 	/// <summary>
 	/// The instance of the BoardManager singleton.
@@ -293,7 +296,6 @@ public class BoardManager : MonoBehaviour {
 	private void FindAndUpdateKings() {
 		List<King> foundKings = FindPiecesOfType<King>();
 		kings = foundKings.OrderByDescending(x => x.ID).ToArray();
-		LocalPlayerKing = gameSessionManager.LocalPlayer.PlayerColor ? kings[0] : kings[1];
 		Debug.Log("Found " + kings.Length + " kings");
 		Debug.Log("White king on " + kings[0].Position);
 		Debug.Log("Black king on " + kings[1].Position);

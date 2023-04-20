@@ -5,19 +5,15 @@ public class King : Piece, IFirstMovable {
 	public override char Symbol => ID > 0 ? 'K' : 'k';
     public bool FirstMove { get; set; } = false;
 
-	public override List<Vector2Int> PossibleMoves {
-        get {
-            possibleMoves.Clear();
-            possibleMoves.AddRange(MoveGenerator.Instance.GetKingMoves(Position));
-            possibleMoves.AddRange(GetCastlingMoves());
-            RemoveFriendlyPiecesFromMoves();
-            RemoveIllegalMoves();
-            return possibleMoves;
-        }
-    }
-
     public void ReinitializeValues() {
 		FirstMove = false;
+	}
+    
+    public override List<Vector2Int> GetAllMoves() {
+        List<Vector2Int> allMoves = new();
+		allMoves.AddRange(MoveGenerator.Instance.GetKingMoves(Position));
+		allMoves.AddRange(GetCastlingMoves());
+        return allMoves;
 	}
 
     private List<Vector2Int> GetCastlingMoves() {
@@ -27,20 +23,20 @@ public class King : Piece, IFirstMovable {
         var rightRook = BoardManager.Instance.GetPieceFromSpace(new Vector2Int(7, Position.y)) as Rook;
         if (leftRook != null && leftRook.FirstMove 
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 1, Position.y)) == null
-            && ClassicGameLogicManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 1, Position.y))
+            && ClassicGameLogicManager.Instance.IsMyMoveLegal(Position, new Vector2Int(Position.x - 1, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 2, Position.y)) == null
-            && ClassicGameLogicManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 2, Position.y))
+            && ClassicGameLogicManager.Instance.IsMyMoveLegal(Position, new Vector2Int(Position.x - 2, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x - 3, Position.y)) == null
-            && ClassicGameLogicManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x - 3, Position.y))) {
+            && ClassicGameLogicManager.Instance.IsMyMoveLegal(Position, new Vector2Int(Position.x - 3, Position.y))) {
             var _newPosition = new Vector2Int(Position.x - 2, Position.y);
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(_newPosition);
             if (_oldPiece == null) moves.Add(_newPosition);
         }
         if (rightRook != null && rightRook.FirstMove 
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x + 1, Position.y)) == null
-            && ClassicGameLogicManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 1, Position.y))
+            && ClassicGameLogicManager.Instance.IsMyMoveLegal(Position, new Vector2Int(Position.x + 1, Position.y))
             && BoardManager.Instance.GetPieceFromSpace(new Vector2Int(Position.x + 2, Position.y)) == null
-            && ClassicGameLogicManager.Instance.IsMoveLegal(Position, new Vector2Int(Position.x + 2, Position.y))) {
+            && ClassicGameLogicManager.Instance.IsMyMoveLegal(Position, new Vector2Int(Position.x + 2, Position.y))) {
             var _newPosition = new Vector2Int(Position.x + 2, Position.y);
             var _oldPiece = BoardManager.Instance.GetPieceFromSpace(_newPosition);
             if (_oldPiece == null) moves.Add(_newPosition);

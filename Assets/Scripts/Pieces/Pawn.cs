@@ -5,18 +5,14 @@ public class Pawn : Piece, IFirstMovable {
 	public override char Symbol => ID > 0 ? 'P' : 'p';
 	public bool FirstMove { get; set; } = false;
 
-	public override List<Vector2Int> PossibleMoves {
-		get {
-			possibleMoves.Clear();
-			possibleMoves.AddRange(MoveGenerator.Instance.GetPawnMovesForward(Position, ID > 0, FirstMove));
-			possibleMoves.AddRange(MoveGenerator.Instance.GetPawnDiagonalMoves(Position, ID > 0));
-			RemoveFriendlyPiecesFromMoves();
-			RemoveIllegalMoves();
-			return possibleMoves;
-		}
-	}
-
 	public void ReinitializeValues() {
 		FirstMove = false;
+	}
+
+	public override List<Vector2Int> GetAllMoves() {
+		List<Vector2Int> allMoves = new();
+		allMoves.AddRange(MoveGenerator.Instance.GetPawnMovesForward(Position, ID > 0, FirstMove));
+		allMoves.AddRange(MoveGenerator.Instance.GetPawnDiagonalMoves(Position, ID > 0));
+		return allMoves;
 	}
 }

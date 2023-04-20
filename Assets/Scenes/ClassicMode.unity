@@ -1609,7 +1609,7 @@ MonoBehaviour:
     m_InternalValue: 0
   BlackPlayerID:
     m_InternalValue: 0
-  GameStarted: 0
+  GameRunning: 0
   LocalPlayer: {fileID: 0}
   OpponentPlayer: {fileID: 0}
   ClassicPlayerObject: {fileID: 2123819506533109091, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
@@ -2047,7 +2047,6 @@ MonoBehaviour:
   - {fileID: 6042540757240198209, guid: c8afa3f90d14c994899c9ffacf20c94e, type: 3}
   - {fileID: -8303279025032983307, guid: c1d24cfdefa0fba4a9882f5658c472f0, type: 3}
   BoardTheme: {fileID: 11400000, guid: 92810a2bb13a6e545872609fb087ec84, type: 2}
-  LocalPlayerKing: {fileID: 0}
 --- !u!114 &2144791411
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -67,7 +67,7 @@ public class Player : NetworkBehaviour {
 
 	void Update() {
 		if (!IsOwner) return;
-		if (!GameSessionManager.Instance.GameStarted) return;
+		if (!GameSessionManager.Instance.GameRunning) return;
 		mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 		var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
 		if (Input.GetMouseButtonDown(0)) PickUpPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
@@ -132,7 +132,8 @@ public class Player : NetworkBehaviour {
 	}
 
 	public void CompletePromotion(PieceType pieceType) {
-		ClassicGameLogicManager.Instance.PromotePawn(promotingMove.MovingPiece as Pawn, pieceType);
+		var pawn = BoardManager.Instance.GetPieceFromSpace(promotingMove.Move.PositionDestination) as Pawn;
+		ClassicGameLogicManager.Instance.PromotePawn(pawn, pieceType);
 		promotingMove = null;
 	}
 

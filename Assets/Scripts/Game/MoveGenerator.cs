@@ -128,7 +128,11 @@ public class MoveGenerator : MonoBehaviour {
             for (int i = 1; i < 3; i++) {
                 var _newPosition = new Vector2Int(position.x, position.y + i);
                 if (!IsPositionValid(_newPosition)) break;
-                if (!CheckAndAddPosition(moves, _newPosition)) break;
+				if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) {
+					moves.Add(_newPosition);
+				} else {
+					break;
+				}
             }
         } else if (isWhite && !firstMove) {
             var _newPosition = new Vector2Int(position.x, position.y + 1);
@@ -140,7 +144,11 @@ public class MoveGenerator : MonoBehaviour {
             for (int i = 1; i < 3; i++) {
                 var _newPosition = new Vector2Int(position.x, position.y - i);
                 if (!IsPositionValid(_newPosition)) break;
-                if (!CheckAndAddPosition(moves, _newPosition)) break;
+				if (BoardManager.Instance.GetPieceFromSpace(_newPosition) == null) {
+					moves.Add(_newPosition);
+				} else {
+					break;
+				}
             }
         } else {
             var _newPosition = new Vector2Int(position.x, position.y - 1);

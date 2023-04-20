@@ -13,3 +13,9 @@ public enum PieceType : int {
 	BRook = -5,
 	BPawn = -6
 }
+
+public static class PieceTypeExtensions {
+	public static bool GetColor(this PieceType pieceType) {
+		return pieceType > 0;
+	}
+}

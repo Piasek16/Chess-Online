@@ -4,14 +4,10 @@ using UnityEngine;
 public class Queen : Piece {
 	public override char Symbol => ID > 0 ? 'Q' : 'q';
 
-	public override List<Vector2Int> PossibleMoves {
-        get {
-            possibleMoves.Clear();
-            possibleMoves.AddRange(MoveGenerator.Instance.GetVerticalMoves(Position));
-            possibleMoves.AddRange(MoveGenerator.Instance.GetDiagonalMoves(Position));
-            RemoveFriendlyPiecesFromMoves();
-            RemoveIllegalMoves();
-            return possibleMoves;
-        }
-    }
+    public override List<Vector2Int> GetAllMoves() {
+		List<Vector2Int> allMoves = new();
+		allMoves.AddRange(MoveGenerator.Instance.GetVerticalMoves(Position));
+		allMoves.AddRange(MoveGenerator.Instance.GetDiagonalMoves(Position));
+		return allMoves;
+	}
 }
