@@ -1,3 +1,4 @@
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,6 +25,7 @@ public class GameSessionManager : NetworkBehaviour {
 
 	[SerializeField] private GameObject ClassicPlayerObject;
 	[SerializeField] private string fenStartingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	[SerializeField] private Canvas endgameCanvas;
 	private BoardManager boardManager;
 	private ClassicGameLogicManager gameLogicManager;
 
@@ -142,33 +144,42 @@ public class GameSessionManager : NetworkBehaviour {
 		EndGameRequestServerRPC(false);
 	}
 
+	public void SurrenderGame() {
+		Debug.Log("[Notification] Sending surrender request to server...");
+		EndGameRequestServerRPC(false, true);
+	}
+
 	[ServerRpc(RequireOwnership = false)]
-	private void EndGameRequestServerRPC(bool kingCheckmated, ServerRpcParams serverRpcParams = default) {
-		if (kingCheckmated) {
-			EndGameClientRPC(true, serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? BlackPlayerID.Value : WhitePlayerID.Value);
-			Debug.Log("[Game Status] Game end by checkmate!");
-			Debug.Log("Winner: " + (serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? "Black player" : "White player"));
-		} else {
+	private void EndGameRequestServerRPC(bool kingCheckmated, bool playerSurrendered = false, ServerRpcParams serverRpcParams = default) {
+		if (!kingCheckmated && !playerSurrendered) {
 			Debug.Log("[Game Status] Game end by stalemate!");
 			EndGameClientRPC(false, default);
+			return;
 		}
+		if (playerSurrendered)
+			Debug.Log("[Game Status] Game end by surrender!");
+		if (kingCheckmated)
+			Debug.Log("[Game Status] Game end by checkmate!");
+		EndGameClientRPC(true, serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? BlackPlayerID.Value : WhitePlayerID.Value);
+		Debug.Log("Winner: " + (serverRpcParams.Receive.SenderClientId == WhitePlayerID.Value ? "Black player" : "White player"));
 	}
 
 	[ClientRpc]
 	private void EndGameClientRPC(bool kingCheckmated, ulong winnerID) {
-		if (kingCheckmated) {
-			if (winnerID == NetworkManager.Singleton.LocalClientId) {
-				//Display winner canvas
-				Debug.Log("Game end - you win!");
-			} else {
-				//Display loser canvas
-				Debug.Log("Game end - you lose!");
-			}
-		} else {
-			//Display draw canvas
-			Debug.Log("Game end - stalemate");
-		}
+		ClassicGameMoveLogger.GameResult result = DetermineGameResult(kingCheckmated, winnerID);
+		ClassicGameMoveLogger.Instance.RecordResult(result);
+		DisplayEndgameCanvas(result);
 		GameRunning = false;
+	}
+
+	private ClassicGameMoveLogger.GameResult DetermineGameResult(bool kingCheckmated, ulong winnerID) {
+		if (!kingCheckmated)
+			return ClassicGameMoveLogger.GameResult.Draw;
+		bool winnerColor = winnerID == WhitePlayerID.Value;
+		if (winnerColor)
+			return ClassicGameMoveLogger.GameResult.WhiteWin;
+		else
+			return ClassicGameMoveLogger.GameResult.BlackWin;
 	}
 
 	[ServerRpc(RequireOwnership = false)]
@@ -207,5 +218,38 @@ public class GameSessionManager : NetworkBehaviour {
 				}
 			}
 		};
+	}
+
+	private void DisplayEndgameCanvas(ClassicGameMoveLogger.GameResult gameResult) {
+		TMP_Text displayText = endgameCanvas.transform.GetChild(0).GetChild(0).GetComponent<TMP_Text>();
+		bool isLocalPlayerWhite = LocalPlayer.PlayerColor;
+		string localPlayerName = LocalPlayer.PlayerName.Value.ToString();
+		string opponentPlayerName = OpponentPlayer.PlayerName.Value.ToString();
+		string resultText, winnerName;
+		switch (gameResult) {
+			case ClassicGameMoveLogger.GameResult.WhiteWin:
+				winnerName = isLocalPlayerWhite ? localPlayerName : opponentPlayerName;
+				resultText = $"Winner - white player ({winnerName})";
+				break;
+			case ClassicGameMoveLogger.GameResult.BlackWin:
+				winnerName = !isLocalPlayerWhite ? localPlayerName : opponentPlayerName;
+				resultText = $"Winner - black player ({winnerName})";
+				break;
+			case ClassicGameMoveLogger.GameResult.Draw:
+				resultText = "Draw!";
+				break;
+			case ClassicGameMoveLogger.GameResult.NotDetermined:
+				Debug.Log("Game result not yet determined!");
+				return;
+			default:
+				Debug.LogError("Game result out of scope!");
+				return;
+		}
+		displayText.text = string.Format(displayText.text, resultText);
+		endgameCanvas.gameObject.SetActive(true);
+	}
+
+	public void QuitGame() {
+		LoginSessionManager.Instance.LobbyManager.QuitLobby();
 	}
 }

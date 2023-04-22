@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 public class Prompt : MonoBehaviour {
-	public UnityEvent unityEvent;
+	public UnityEvent OnClick;
 	TMP_Text _promptText;
 	public string PromptText {
 		get => _promptText.text;
@@ -14,8 +14,8 @@ public class Prompt : MonoBehaviour {
 		_promptText = transform.GetChild(0).GetChild(0).GetComponent<TMP_Text>();
 	}
 
-	public void OnClick() {
-		unityEvent.Invoke();
+	public void TriggerClick() {
+		OnClick.Invoke();
 	}
 
 	public void DestroyPrompt() {

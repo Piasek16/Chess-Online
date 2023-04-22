@@ -174,8 +174,7 @@ public class LobbyManager : NetworkBehaviour {
     }
 
     public void QuitLobby() {
-        Debug.Log("Player networking shutdown.");
-		NetworkManager.Singleton.Shutdown();
-		LoginSessionManager.Instance.QuitFromOwnLobbyCallback();
+        Debug.Log("Disconnecting from current lobby.");
+		LoginSessionManager.Instance.Disconnect();
 	}
 }

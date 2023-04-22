@@ -12,6 +12,8 @@ public class CustomLogger : MonoBehaviour {
 	}
 	public bool LogBoxHidden { get => !transform.GetChild(0).gameObject.activeSelf; set => transform.GetChild(0).gameObject.SetActive(!value); }
 
+	[SerializeField] private Prompt defaultPrompt;
+
 	List<string> logMessages = new();
 	string logFileName;
 
@@ -59,5 +61,10 @@ public class CustomLogger : MonoBehaviour {
 		yield return new WaitForEndOfFrame();
 		Canvas.ForceUpdateCanvases();
 		GetComponentInChildren<ScrollRect>().verticalNormalizedPosition = 0f;
+	}
+
+	public Prompt CreatePrompt() {
+		Prompt prompt = Instantiate(defaultPrompt);
+		return prompt;
 	}
 }

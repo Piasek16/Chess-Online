@@ -73,18 +73,17 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 			Debug.LogError("Cannot save game before it is finished!");
 			return;
 		}
-		string gameSaveFileName = "Classic Chess Game " + System.DateTime.Now;
-		string gameSaveFilePath = Application.dataPath + "/" + gameSaveFileName + ".txt";
+		string gameSaveFileName = "Classic Chess Game " + System.DateTime.Now.ToString("dd.MM.yyyy HH.mm");
+		string gameSaveFilePath = $"{Application.dataPath}/{gameSaveFileName}.pgn";
 		TextWriter tw = new StreamWriter(gameSaveFilePath);
-		tw.WriteLine("[" + gameSaveFileName + "]");
 		var players = FindObjectsOfType<Player>();
 		string whitePlayer, blackPlayer;
 		if (players[0].PlayerColor == true) {
-			whitePlayer = players[0].name;
-			blackPlayer = players[1].name;
+			whitePlayer = players[0].PlayerName.Value.ToString();
+			blackPlayer = players[1].PlayerName.Value.ToString();
 		} else {
-			whitePlayer = players[1].name;
-			blackPlayer = players[0].name;
+			whitePlayer = players[1].PlayerName.Value.ToString();
+			blackPlayer = players[0].PlayerName.Value.ToString();
 		}
 		tw.WriteLine(GetPGNTagLine(PGNTag.Event, "Piasek's Classic Online Chess"));
 		tw.WriteLine(GetPGNTagLine(PGNTag.Site, "Chess-Online"));
@@ -94,8 +93,12 @@ public class ClassicGameMoveLogger : MonoBehaviour {
 		tw.WriteLine(GetPGNTagLine(PGNTag.Black, blackPlayer));
 		tw.WriteLine(GetPGNTagLine(PGNTag.Result, GetResultSymbol()));
 		tw.WriteLine();
-		tw.WriteLine(ToString());
+		tw.WriteLine(ToString() + GetResultSymbol());
 		tw.Close();
+		Debug.Log("[INFO] Game saved!");
+		Prompt prompt = CustomLogger.Instance.CreatePrompt();
+		prompt.PromptText = $"Game saved into:\n{gameSaveFilePath}";
+		prompt.OnClick.AddListener(() => prompt.DestroyPrompt());
 	}
 
 	private string GetResultSymbol() {

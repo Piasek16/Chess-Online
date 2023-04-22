@@ -35,6 +35,7 @@ public class LoginSessionManager : MonoBehaviour {
 	private Toggle relayServiceToggle;
 	private UnityTransport unityTransport;
 	private GameObject connectingStatusCanvas;
+	private Prompt quitCurrentActivityPrompt;
 
 	void Start() {
 		usernameCanvas = transform.GetChild(0).gameObject;
@@ -52,6 +53,7 @@ public class LoginSessionManager : MonoBehaviour {
 		usernameCanvas.GetComponentInChildren<TMP_InputField>().onSubmit.AddListener(username => { PassUsername(username); AdvanceLoginCanvas(); });
 		connectionCanvas.GetComponentInChildren<TMP_InputField>().onSubmit.AddListener(target => { PassConnectionTarget(target); ConnectClient(); });
 		connectingStatusCanvas = transform.GetChild(3).gameObject;
+		quitCurrentActivityPrompt = transform.GetChild(2).GetComponent<Prompt>();
 	}
 
 	private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1) {
@@ -191,14 +193,16 @@ public class LoginSessionManager : MonoBehaviour {
 	}
 
 	private void Singleton_OnClientDisconnectCallback(ulong obj) {
-		Debug.Log("Client disconnected. (Or connection attempt failed/timed out)");
-		connectionCanvas.SetActive(true);
-		if (SceneManager.GetActiveScene().buildIndex != 0) {
-			NetworkManager.Singleton.Shutdown();
-			SceneManager.LoadScene(0);
-		} else {
-			StopAnimatingConnectingProcess();
+		if (obj == 0) { // Server client id is guaranteed to be 0
+			Debug.Log("[INFO] Server disconnected.");
+			Disconnect();
+			return;
 		}
+		if (NetworkManager.Singleton.LocalClientId != obj)
+			return;
+		Debug.Log("Client disconnected. (Or connection attempt failed/timed out)");
+		Disconnect();
+		StopAnimatingConnectingProcess();
 	}
 
 	public void CancelConnectionAttempt() {
@@ -207,8 +211,11 @@ public class LoginSessionManager : MonoBehaviour {
 		StopAnimatingConnectingProcess();
 	}
 
-	public void QuitFromOwnLobbyCallback() {
-		Singleton_OnClientDisconnectCallback(0);
+	public void Disconnect() {
+		NetworkManager.Singleton.Shutdown();
+		connectionCanvas.SetActive(true);
+		if (SceneManager.GetActiveScene().buildIndex != 0)
+			SceneManager.LoadScene(0);
 	}
 
 	public void StartHost() {
@@ -338,7 +345,7 @@ public class LoginSessionManager : MonoBehaviour {
 		};
 	}
 
-	bool PromptVisible { get => transform.GetChild(2).gameObject.activeSelf; set => transform.GetChild(2).gameObject.SetActive(value); }
+	bool PromptVisible { get => quitCurrentActivityPrompt.gameObject.activeSelf; set => quitCurrentActivityPrompt.gameObject.SetActive(value); }
 	enum UserActivity { InMenu, InLobby, PlayingGame };
 	UserActivity userActivity;
 	void Update() {
@@ -352,13 +359,13 @@ public class LoginSessionManager : MonoBehaviour {
 				return;
 			}
 			userActivity = DetermineUserActivity();
-			string activityName = userActivity switch {
-				UserActivity.PlayingGame => "current game",
-				UserActivity.InLobby => "lobby",
-				_ => "game",
+			string activityQuitText = userActivity switch {
+				UserActivity.PlayingGame => "Surrender game?",
+				UserActivity.InLobby => "Quit from lobby?",
+				_ => "Exit game?",
 			};
-			ExpandPromptText(activityName);
 			PromptVisible = true;
+			quitCurrentActivityPrompt.PromptText = activityQuitText;
 		}
 	}
 
@@ -372,16 +379,11 @@ public class LoginSessionManager : MonoBehaviour {
 		return UserActivity.InMenu;
 	}
 
-	void ExpandPromptText(string activity) {
-		var textField = transform.GetChild(2).GetChild(0).GetChild(0).GetComponent<TMP_Text>();
-		textField.text = $"Quit from {activity}?";
-	}
-
 	public void ProceedWithPrompt() {
 		PromptVisible = false;
 		switch (userActivity) {
 			case UserActivity.PlayingGame:
-				// TODO: Handle Game quit
+				GameSessionManager.Instance.SurrenderGame();
 				break;
 			case UserActivity.InLobby:
 				LobbyManager.QuitLobby();

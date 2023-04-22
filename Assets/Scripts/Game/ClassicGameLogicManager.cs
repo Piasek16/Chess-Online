@@ -93,7 +93,7 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		AnalyzeForCheck(moveData);
 		AnalyzeForCheckmate(moveData);
 		ClassicGameMoveLogger.Instance.RecordMove(moveData);
-		bool pieceColor = (int)moveData.MovingPieceType > 0;
+		bool pieceColor = moveData.MovingPieceType.GetColor();
 		if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Checkmate)) {
 			gameSessionManager.OnCheckmate(!pieceColor);
 		} else if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Check)) {
