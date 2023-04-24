@@ -1614,7 +1614,7 @@ MonoBehaviour:
   LocalPlayer: {fileID: 0}
   OpponentPlayer: {fileID: 0}
   ClassicPlayerObject: {fileID: 2123819506533109091, guid: b4a746510a10cf341966db2c5bc5fd07, type: 3}
-  fenStartingPosition: rnbqkbnr/pppp1ppp/4p3/8/6P1/5P2/PPPPP2P/RNBQKBNR b - - 0 1
+  fenStartingPosition: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   endgameCanvas: {fileID: 2538490838358065883}
 --- !u!4 &1453127489
 Transform:
@@ -2318,6 +2318,8 @@ MonoBehaviour:
   - {fileID: 5741285808954775336, guid: 4900abda6d243ed4c9b4ab8e2ab1ba97, type: 3}
   - {fileID: 6042540757240198209, guid: c8afa3f90d14c994899c9ffacf20c94e, type: 3}
   - {fileID: -8303279025032983307, guid: c1d24cfdefa0fba4a9882f5658c472f0, type: 3}
+  movePieceClip: {fileID: 8300000, guid: c8cc0e329801e074d959f32bf091d57e, type: 3}
+  capturePieceClip: {fileID: 8300000, guid: 9581235eccd2b84449b3ee0d9892e9ca, type: 3}
   BoardTheme: {fileID: 11400000, guid: 92810a2bb13a6e545872609fb087ec84, type: 2}
 --- !u!114 &2144791411
 MonoBehaviour:

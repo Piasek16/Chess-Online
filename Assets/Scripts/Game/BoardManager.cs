@@ -16,6 +16,8 @@ public class BoardManager : MonoBehaviour {
 	private GameSessionManager gameSessionManager;
 	private ClassicGameLogicManager gameLogicManager;
 	private PiecePool piecePool;
+	[SerializeField] AudioClip movePieceClip;
+	[SerializeField] AudioClip capturePieceClip;
 	public static Dictionary<char, PieceType> SymbolToPieceType;
 	public static Dictionary<PieceType, char> PieceTypeToSymbol;
 
@@ -42,6 +44,15 @@ public class BoardManager : MonoBehaviour {
 		PieceTypeToSymbol = SymbolToPieceType.ToDictionary(x => x.Value, x => x.Key);
 		piecePool = new PiecePool();
 		GenerateBoard();
+		ClassicGameLogicManager.Instance.OnMoveFinished += Instance_OnMoveFinished;
+	}
+
+	private void Instance_OnMoveFinished(ClassicGameMove moveData) {
+		if (moveData.Action.HasFlag(ClassicGameMove.SpecialAction.Capture)) {
+			AudioSource.PlayClipAtPoint(capturePieceClip, Camera.main.transform.position);
+		} else {
+			AudioSource.PlayClipAtPoint(movePieceClip, Camera.main.transform.position);
+		}
 	}
 
 	void OnDestroy() {

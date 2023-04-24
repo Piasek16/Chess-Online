@@ -36,6 +36,9 @@ public class CustomLogger : MonoBehaviour {
 		if (type == LogType.Exception) {
 			logMessages.Add(stackTrace);
 		}
+		if (type == LogType.Error || type == LogType.Exception) {
+			CreateErrorPrompt(logString);
+		}
 		if (!LogBoxHidden)
 			StartCoroutine(ForceScrollDown());
 #if !UNITY_EDITOR
@@ -66,5 +69,11 @@ public class CustomLogger : MonoBehaviour {
 	public Prompt CreatePrompt() {
 		Prompt prompt = Instantiate(defaultPrompt);
 		return prompt;
+	}
+
+	private void CreateErrorPrompt(string message) {
+		Prompt prompt = CreatePrompt();
+		prompt.PromptText = message;
+		prompt.OnClick.AddListener(() => prompt.DestroyPrompt());
 	}
 }

@@ -70,7 +70,8 @@ public class Player : NetworkBehaviour {
 		if (!GameSessionManager.Instance.GameRunning) return;
 		mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 		var roundedMousePos = new Vector2Int(Mathf.RoundToInt(mousePos.x), Mathf.RoundToInt(mousePos.y));
-		if (Input.GetMouseButtonDown(0)) PickUpPiece(BoardManager.Instance.GetPieceFromSpace(roundedMousePos));
+		Piece pieceToGet = MoveGenerator.IsPositionValid(roundedMousePos) ? BoardManager.Instance.GetPieceFromSpace(roundedMousePos) : null;
+		if (Input.GetMouseButtonDown(0)) PickUpPiece(pieceToGet);
 		if (Input.GetMouseButtonUp(0)) DropPieceAt(roundedMousePos);
 		if (heldPiece != null) HoldPiece();
 		if (Input.GetMouseButtonDown(1)) SetArrowPointerBeginning(roundedMousePos);

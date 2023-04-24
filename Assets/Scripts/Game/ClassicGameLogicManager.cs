@@ -180,18 +180,6 @@ public class ClassicGameLogicManager : MonoBehaviour {
 		return false;
 	}
 
-	[Obsolete("Legacy version - you should use the move struct version instead.")]
-	public bool IsMyMoveLegal(Vector2Int oldPosition, Vector2Int newPosition) {
-		var oldPiece = BoardManager.Instance.GetPieceFromSpace(newPosition);
-		if (oldPiece != null) oldPiece.transform.parent = null;
-		Move move = new(oldPosition, newPosition);
-		BoardManager.Instance.ExecuteMove(move, false);
-		var check = IsKingInCheck(gameSessionManager.LocalPlayer.PlayerColor);
-		BoardManager.Instance.ExecuteMove(move.Reverse, false);
-		if (oldPiece != null) oldPiece.transform.parent = BoardManager.Instance.board[newPosition.x, newPosition.y].transform;
-		return !check;
-	}
-
 	/// <summary>
 	/// Checks if the move is legal for the player with the specified color.
 	/// </summary>
